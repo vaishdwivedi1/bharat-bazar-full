@@ -1,8 +1,8 @@
-import connectDB from "./config/db.js";
-import express, { json } from "express";
-import { configDotenv } from "dotenv";
-import authRoutes from "./routes/authRoutes.js";
 import cors from "cors";
+import { configDotenv } from "dotenv";
+import express from "express";
+import connectDB from "./config/db.js";
+import authRoutes from "./routes/authRoutes.js";
 configDotenv();
 
 // db

@@ -1,4 +1,9 @@
 export const StaticAPI = {
-  login: "/auth/admin/v1/login",
-  createAdmin: "/auth/admin/v1/createAdmin",
+  login: "/auth/v1/login",
+  registerSeller: "/auth/seller/v1/registerSeller",
+  registerBuyer: "/auth/user/v1/registerBuyer",
+  sendOTP: "/auth/v1/send-otp",
+  verifyOTP: "/auth/v1/verify-otp",
+  forgotPassword: "/auth/v1/forgot-password",
+  resetPassword: "/auth/v1/reset-password",
 };

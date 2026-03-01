@@ -18,9 +18,10 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   UNAUTHORIZED: "/unauthorized",
+  FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
 
   // ============ USER ROUTES ============
-  USER_DASHBOARD: `${USER_BASE_PATH}/dashboard`,
   USER_CART: `${USER_BASE_PATH}/cart`,
   USER_CHECKOUT: `${USER_BASE_PATH}/checkout`,
   USER_ORDERS: `${USER_BASE_PATH}/orders`,

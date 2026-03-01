@@ -1,43 +1,43 @@
+import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { useState, useEffect } from "react";
 
 // Layout Components
-import MainLayout from "./components/MainLayout";
-import UserLayout from "./components/UserLayout";
 import SellerLayout from "./components/SellerLayout";
+import UserLayout from "./components/UserLayout";
 
 // Auth Components
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
 // Public Pages (Everyone can see these)
-import Home from "./pages/user/Home";
-import PublicProducts from "./pages/user/Products";
-import PublicProductDetail from "./pages/user/ProductDetail";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import Home from "./pages/user/Home";
+import PublicProductDetail from "./pages/user/ProductDetail";
+import PublicProducts from "./pages/user/Products";
 
 // User Pages (Protected - after login)
 import UserCart from "./pages/user/Cart";
 import UserCheckout from "./pages/user/Checkout";
-import UserOrders from "./pages/user/Orders";
 import UserOrderDetail from "./pages/user/OrderDetail";
+import UserOrders from "./pages/user/Orders";
 import UserProfile from "./pages/user/Profile";
 import UserWishlist from "./pages/user/Wishlist";
 
 // Seller Pages (Protected - after login)
-import SellerDashboard from "./pages/seller/Dashboard";
-import SellerProducts from "./pages/seller/Products";
 import SellerAddProduct from "./pages/seller/AddProduct";
+import SellerDashboard from "./pages/seller/Dashboard";
 import SellerEditProduct from "./pages/seller/EditProduct";
-import SellerProductDetail from "./pages/seller/ProductDetail";
-import SellerOrders from "./pages/seller/Orders";
-import SellerOrderDetail from "./pages/seller/OrderDetail";
 import SellerInventory from "./pages/seller/Inventory";
+import SellerOrderDetail from "./pages/seller/OrderDetail";
+import SellerOrders from "./pages/seller/Orders";
+import SellerProductDetail from "./pages/seller/ProductDetail";
+import SellerProducts from "./pages/seller/Products";
 import SellerProfile from "./pages/seller/Profile";
 import SellerSettings from "./pages/seller/Settings";
 
-import { ROUTES, USER_BASE_PATH, SELLER_BASE_PATH } from "./utils/StaticRoutes";
+import { ROUTES, SELLER_BASE_PATH, USER_BASE_PATH } from "./utils/StaticRoutes";
+import ForgotPassword from "./pages/ForgotPassword";
 
 // ============ PROTECTED ROUTE COMPONENT ============
 const ProtectedRoute = ({
@@ -186,6 +186,7 @@ const Routing = () => {
         {/* Only for authentication - separate layout */}
         <Route path={ROUTES.LOGIN} element={<Login />} />
         <Route path={ROUTES.REGISTER} element={<Register />} />
+        <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
 
         {/* Unauthorized Page */}
         <Route path={ROUTES.UNAUTHORIZED} element={<Unauthorized />} />
