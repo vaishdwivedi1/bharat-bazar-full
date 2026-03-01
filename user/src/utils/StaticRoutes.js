@@ -15,8 +15,8 @@ export const ROUTES = {
   PUBLIC_PRODUCT_SEARCH: "/products/search",
 
   // Auth Routes
-  LOGIN: "/auth/login",
-  REGISTER: "/auth/register",
+  LOGIN: "/login",
+  REGISTER: "/register",
   UNAUTHORIZED: "/unauthorized",
 
   // ============ USER ROUTES ============

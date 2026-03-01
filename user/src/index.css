@@ -1,1 +1,35 @@
 @import "tailwindcss";
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+.body {
+  overflow: hidden;
+}
+
+.featured-products-swiper {
+  padding: 0.5rem 0.25rem 2.5rem 0.25rem;
+}
+
+.featured-products-swiper .swiper-pagination-bullet {
+  background: #d1d5db;
+  opacity: 1;
+  width: 8px;
+  height: 8px;
+  transition: all 0.3s;
+}
+
+.featured-products-swiper .swiper-pagination-bullet-active {
+  background: hsl(24, 100%, 50%);
+  width: 20px;
+  border-radius: 4px;
+}
+
+/* Line clamp for text */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
