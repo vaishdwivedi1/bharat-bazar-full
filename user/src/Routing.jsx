@@ -164,7 +164,15 @@ const Routing = () => {
           {/* Product browsing - Available to everyone */}
           <Route path="products">
             <Route index element={<PublicProducts />} />
-            <Route path=":id" element={<PublicProductDetail />} />
+            <Route
+              path=":id"
+              element={
+                <UserLayout>
+                  {" "}
+                  <PublicProductDetail />{" "}
+                </UserLayout>
+              }
+            />
             <Route path="category/:categoryId" element={<PublicProducts />} />
             <Route path="search" element={<PublicProducts />} />
           </Route>
