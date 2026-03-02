@@ -1,17 +1,16 @@
-import { User } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import { Address } from "../models/Address.js";
+import { Bank } from "../models/Bank.js";
+import { OTP } from "../models/OTP.js";
+import { User } from "../models/User.js";
 import {
   addhaarValidationRegex,
   gstValidationRegex,
   ifscValidationRegex,
   panValidationRegex,
 } from "../utils/Constants.js";
-import { Address } from "../models/Address.js";
-import { Bank } from "../models/Bank.js";
-import { OTP } from "../models/OTP.js";
-import otpGenerator from "otp-generator";
-import nodemailer from "nodemailer";
 
 export const userLogin = async (req, res) => {
   try {
@@ -79,10 +78,15 @@ export const forgotPassword = async (req, res) => {
 };
 
 export const sendEmailOtp = async (req, res) => {
-  const { email } = req.body;
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
   try {
+    const { email } = req.body;
+    let user;
+    user = await User.findOne({
+      $or: [{ email: email }, { mobile: email }],
+    });
+    if (!user) return res.status(400).json({ message: "Invalid data" });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     await OTP.create({ email, otp });
 
     // Send OTP via email (replace with your email sending logic)
@@ -167,19 +171,68 @@ export const resetPassword = async (req, res) => {
 };
 
 export const verifyEmailOtp = async (req, res) => {
-  const { email, otp } = req.body;
+  const { email, otp, purpose } = req.body; // Add 'purpose' parameter
 
   try {
     const otpRecord = await OTP.findOne({ email, otp }).exec();
 
-    if (otpRecord) {
-      res.status(200).send("OTP verified successfully");
-    } else {
-      res.status(400).send("Invalid OTP");
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
     }
+
+    // Check expiry
+    const otpAge = (Date.now() - otpRecord.createdAt) / (1000 * 60);
+    if (otpAge > 10) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired",
+      });
+    }
+
+    // Delete OTP after successful verification
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    // If purpose is 'login', generate token
+    if (purpose === "login") {
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      const token = jwt.sign(
+        { id: user._id, email: user.email, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" },
+      );
+
+      const { password, ...userData } = user._doc;
+
+      return res.status(200).json({
+        success: true,
+        message: "OTP verified successfully",
+        token,
+        data: userData,
+      });
+    }
+
+    // For other purposes, just return success
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully",
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).send("Error verifying OTP");
+    res.status(500).json({
+      success: false,
+      message: "Error verifying OTP",
+    });
   }
 };
 
@@ -208,7 +261,6 @@ export const createAdmin = async (req, res) => {
   }
 };
 
-// Register Buyer
 export const registerBuyer = async (req, res) => {
   try {
     const { name, email, mobile, password } = req.body;
@@ -232,14 +284,6 @@ export const registerBuyer = async (req, res) => {
       return res
         .status(400)
         .json({ message: "Password must be at least 8 characters" });
-    }
-
-    const hasLetter = /[a-zA-Z]/.test(password);
-    const hasNumber = /\d/.test(password);
-    if (!hasLetter || !hasNumber) {
-      return res.status(400).json({
-        message: "Password must contain at least one letter and one number",
-      });
     }
 
     // Hash password
@@ -285,7 +329,6 @@ export const registerBuyer = async (req, res) => {
   }
 };
 
-// Register Seller
 export const registerSeller = async (req, res) => {
   try {
     // Get form-data fields

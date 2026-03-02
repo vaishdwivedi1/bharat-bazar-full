@@ -5,6 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { POSTMethod } from "../utils/service";
 import { StaticAPI } from "../utils/StaticApi";
 import { ROUTES } from "../utils/StaticRoutes";
+import { toast } from "react-toastify";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const Login = () => {
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setError("");
+    setOtp("");
 
     if (!identifier) {
       setError("Please enter email or mobile number");
@@ -29,15 +31,11 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await POSTMethod(StaticAPI.sendOTP, {
-        identifier: identifier,
+        email: identifier,
       });
 
-      if (response.data.success) {
-        setOtpSent(true);
-        alert(`OTP sent to ${identifier}`);
-      } else {
-        setError(response.data.message || "Failed to send OTP");
-      }
+      setOtpSent(true);
+      toast.success(`OTP sent to ${identifier}`);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send OTP");
     } finally {
@@ -105,20 +103,18 @@ const Login = () => {
       const isEmail = identifier.includes("@");
 
       const loginData = isEmail
-        ? { email: identifier, otp }
-        : { mobile: identifier, otp };
+        ? { email: identifier, otp, purpose: "login" }
+        : { mobile: identifier, otp, purpose: "login" };
 
       const response = await POSTMethod(StaticAPI.verifyOTP, loginData);
 
-      if (response.data) {
+      if (response.data._id) {
         // Store token and user data
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.data));
 
-        alert("Login successful!");
-
         // Redirect based on user role
-        const userRole = response.data.data.role;
+        const userRole = response.data.role;
         if (userRole === "seller") {
           navigate("/seller/dashboard");
         } else {
