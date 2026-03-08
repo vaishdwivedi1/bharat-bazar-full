@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
+import twilio from "twilio";
 import { Address } from "../models/Address.js";
 import { Bank } from "../models/Bank.js";
 import { OTP } from "../models/OTP.js";
@@ -11,6 +12,12 @@ import {
   ifscValidationRegex,
   panValidationRegex,
 } from "../utils/Constants.js";
+
+// Initialize Twilio client
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN,
+);
 
 export const userLogin = async (req, res) => {
   try {
@@ -27,18 +34,15 @@ export const userLogin = async (req, res) => {
     }
     if (!user) return res.status(400).json({ message: "Invalid data" });
 
-    const isPasswordMatched = bcrypt.compare(password, user.password);
+    const isPasswordMatched = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatched)
       return res.status(400).json({ message: "Invalid data" });
 
-    // if (user.role !== "admin")
-    // return res.status(400).json({ message: "Invalid user" });
-
     const token = jwt.sign(
-      { id: user._id, role: user.role }, // payload
-      process.env.JWT_SECRET, // secret key
-      { expiresIn: "7d" }, // options
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
     );
 
     const { password: _, ...userData } = user._doc;
@@ -55,18 +59,18 @@ export const userLogin = async (req, res) => {
 
 export const forgotPassword = async (req, res) => {
   try {
-    const { identifier, otp } = req.body;
+    const { identifier } = req.body;
 
     if (!identifier) return res.status(400).send({ message: "Invalid user" });
 
-    let user;
-    user = await User.findOne({
+    const user = await User.findOne({
       $or: [{ email: identifier }, { mobile: identifier }],
     });
 
+    if (!user) return res.status(400).json({ message: "Invalid data" });
+
     const { password: _, ...userData } = user._doc;
 
-    if (!user) return res.status(400).json({ message: "Invalid data" });
     return res.status(200).json({
       message: "User verified",
       data: userData,
@@ -77,19 +81,32 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
+// Send OTP via Email
 export const sendEmailOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    let user;
-    user = await User.findOne({
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const user = await User.findOne({
       $or: [{ email: email }, { mobile: email }],
     });
-    if (!user) return res.status(400).json({ message: "Invalid data" });
+
+    if (!user)
+      return res.status(400).json({
+        success: false,
+        message: "User not found",
+      });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await OTP.create({ email, otp });
+    await OTP.create({ email, otp, type: "email" });
 
-    // Send OTP via email (replace with your email sending logic)
+    // Send OTP via email
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -102,13 +119,265 @@ export const sendEmailOtp = async (req, res) => {
       from: process.env.NODEMAILER_EMAIL,
       to: email,
       subject: "OTP Verification",
-      text: `Your OTP for verification is: ${otp}`,
+      text: `Your OTP for verification is: ${otp}. Valid for 10 minutes.`,
     });
 
-    res.status(200).send("OTP sent successfully");
+    res.status(200).json({
+      success: true,
+      message: "OTP sent successfully to email",
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).send("Error sending OTP");
+    res.status(500).json({
+      success: false,
+      message: "Error sending OTP",
+    });
+  }
+};
+
+// Send OTP via SMS (Twilio)
+export const sendMobileOtp = async (req, res) => {
+  try {
+    const { mobile } = req.body;
+
+    // Validate mobile number
+    if (!mobile) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile number is required",
+      });
+    }
+
+    // Check if user exists (optional - depends on your use case)
+    const user = await User.findOne({ mobile });
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store OTP in database
+    await OTP.create({
+      mobile,
+      otp,
+      type: "mobile",
+    });
+
+    // Send OTP via SMS using Twilio
+    try {
+      await twilioClient.messages.create({
+        body: `Your verification OTP is: ${otp}. Valid for 10 minutes.`,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: mobile,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "OTP sent successfully to mobile",
+      });
+    } catch (twilioError) {
+      console.error("Twilio error:", twilioError);
+
+      // For development/testing, return OTP in response (remove in production)
+      if (process.env.NODE_ENV === "development") {
+        return res.status(200).json({
+          success: true,
+          message: "OTP generated (development mode)",
+          otp: otp, // Only for testing!
+        });
+      }
+
+      throw new Error("Failed to send SMS");
+    }
+  } catch (error) {
+    console.error("Send mobile OTP error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error sending OTP to mobile",
+    });
+  }
+};
+
+// Send OTP to either email or mobile based on identifier
+export const sendOtp = async (req, res) => {
+  try {
+    const { identifier } = req.body; // Can be email or mobile number
+
+    if (!identifier) {
+      return res.status(400).json({
+        success: false,
+        message: "Email or mobile number is required",
+      });
+    }
+
+    // Check if identifier is email or mobile
+    const isEmail = identifier.includes("@");
+
+    if (isEmail) {
+      // Forward to email OTP handler
+      req.body.email = identifier;
+      return sendEmailOtp(req, res);
+    } else {
+      // Forward to mobile OTP handler
+      req.body.mobile = identifier;
+      return sendMobileOtp(req, res);
+    }
+  } catch (error) {
+    console.error("Send OTP error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error sending OTP",
+    });
+  }
+};
+
+// Verify OTP (works for both email and mobile)
+export const verifyOtp = async (req, res) => {
+  const { identifier, otp, purpose } = req.body; // identifier can be email or mobile
+
+  try {
+    if (!identifier || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Identifier and OTP are required",
+      });
+    }
+
+    // Determine if identifier is email or mobile
+    const isEmail = identifier.includes("@");
+
+    // Find OTP record
+    const query = isEmail ? { email: identifier } : { mobile: identifier };
+    const otpRecord = await OTP.findOne({ ...query, otp }).exec();
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    // Check expiry (10 minutes)
+    const otpAge = (Date.now() - otpRecord.createdAt) / (1000 * 60);
+    if (otpAge > 10) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired",
+      });
+    }
+
+    // Delete OTP after successful verification
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    // If purpose is 'login', generate token
+    if (purpose === "login") {
+      const user = await User.findOne(
+        isEmail ? { email: identifier } : { mobile: identifier },
+      );
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      const token = jwt.sign(
+        {
+          id: user._id,
+          email: user.email,
+          mobile: user.mobile,
+          role: user.role,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" },
+      );
+
+      const { password, ...userData } = user._doc;
+
+      return res.status(200).json({
+        success: true,
+        message: "OTP verified successfully",
+        token,
+        data: userData,
+      });
+    }
+
+    // For other purposes, just return success
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully",
+    });
+  } catch (error) {
+    console.error("Verify OTP error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error verifying OTP",
+    });
+  }
+};
+
+// Keep the original verifyEmailOtp for backward compatibility
+export const verifyEmailOtp = async (req, res) => {
+  const { email, otp, purpose } = req.body;
+
+  try {
+    const otpRecord = await OTP.findOne({ email, otp }).exec();
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    // Check expiry
+    const otpAge = (Date.now() - otpRecord.createdAt) / (1000 * 60);
+    if (otpAge > 10) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired",
+      });
+    }
+
+    // Delete OTP after successful verification
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    if (purpose === "login") {
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      const token = jwt.sign(
+        { id: user._id, email: user.email, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" },
+      );
+
+      const { password, ...userData } = user._doc;
+
+      return res.status(200).json({
+        success: true,
+        message: "OTP verified successfully",
+        token,
+        data: userData,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Error verifying OTP",
+    });
   }
 };
 
@@ -166,72 +435,6 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error resetting password",
-    });
-  }
-};
-
-export const verifyEmailOtp = async (req, res) => {
-  const { email, otp, purpose } = req.body; // Add 'purpose' parameter
-
-  try {
-    const otpRecord = await OTP.findOne({ email, otp }).exec();
-
-    if (!otpRecord) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid OTP",
-      });
-    }
-
-    // Check expiry
-    const otpAge = (Date.now() - otpRecord.createdAt) / (1000 * 60);
-    if (otpAge > 10) {
-      await OTP.deleteOne({ _id: otpRecord._id });
-      return res.status(400).json({
-        success: false,
-        message: "OTP has expired",
-      });
-    }
-
-    // Delete OTP after successful verification
-    await OTP.deleteOne({ _id: otpRecord._id });
-
-    // If purpose is 'login', generate token
-    if (purpose === "login") {
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-        });
-      }
-
-      const token = jwt.sign(
-        { id: user._id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" },
-      );
-
-      const { password, ...userData } = user._doc;
-
-      return res.status(200).json({
-        success: true,
-        message: "OTP verified successfully",
-        token,
-        data: userData,
-      });
-    }
-
-    // For other purposes, just return success
-    res.status(200).json({
-      success: true,
-      message: "OTP verified successfully",
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: "Error verifying OTP",
     });
   }
 };

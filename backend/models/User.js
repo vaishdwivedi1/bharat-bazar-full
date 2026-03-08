@@ -1,6 +1,4 @@
 import mongoose from "mongoose";
-import { Address } from "./Address.js";
-import { Bank } from "./Bank.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -23,10 +21,11 @@ const userSchema = new mongoose.Schema(
     panDoc: String, // Store full URL or path
     addhaarDoc: String, // Store full URL or path
 
-    // References - FIX THE FIELD NAMES
-    banks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Bank" }], // Changed from bankAddress
+    // References
+    banks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Bank" }],
     addresses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Address" }],
   },
   { timestamps: true },
 );
+
 export const User = mongoose.model("User", userSchema);
