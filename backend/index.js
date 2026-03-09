@@ -21,9 +21,11 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/category", categoryRoutes);
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server started at ${process.env.PORT}`);
-});
+if (process.env.NODE_ENV !== "production") {
+  app.listen(process.env.PORT, () => {
+    console.log(`Server started at ${process.env.PORT}`);
+  });
+}
 
 app.get("/", (req, res) => {
   res.send("Backend is running!");
