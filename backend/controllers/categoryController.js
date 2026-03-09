@@ -1,6 +1,9 @@
 import { Category } from "../models/Category.js";
 import fs from "fs";
-import uploadOnCloudinary from "../utils/uploadOnCloudinary.js";
+import uploadOnCloudinary, {
+  deleteFromCloudinary,
+} from "../utils/uploadOnCloudinary.js";
+import mongoose from "mongoose";
 
 export const addCategory = async (req, res) => {
   try {
@@ -232,7 +235,7 @@ export const editCategory = async (req, res) => {
 
 export const deleteCategory = async (req, res) => {
   try {
-    const { id } = req.params; // or req.body.id
+    const { id } = req.query; // Change from req.params to req.query
 
     if (!id) {
       return res.status(400).json({ message: "Category ID is required" });

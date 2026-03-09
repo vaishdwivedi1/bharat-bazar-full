@@ -19,8 +19,15 @@ router.post(
   upload.single("image"),
   addCategory,
 );
-router.patch("/v1/edit-category", isValidToken, isAdmin, editCategory);
+router.put(
+  "/v1/edit-category",
+  isValidToken,
+  isAdmin,
+  upload.single("image"),
+  editCategory,
+);
 router.delete("/v1/delete-category", isValidToken, isAdmin, deleteCategory);
+
 router.get("/v1/category/active", getAllActiveCategory);
 router.get("/v1/category/featured", getAllFeaturedCategory);
 router.get("/v1/category/all", getAllCategory);
