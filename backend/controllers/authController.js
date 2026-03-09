@@ -35,6 +35,7 @@ export const userLogin = async (req, res) => {
     if (!user) return res.status(400).json({ message: "Invalid data" });
 
     const isPasswordMatched = await bcrypt.compare(password, user.password);
+    console.log({ isPasswordMatched });
 
     if (!isPasswordMatched)
       return res.status(400).json({ message: "Invalid data" });

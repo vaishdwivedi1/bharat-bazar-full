@@ -21,6 +21,7 @@ const router = express.Router();
 router.post("/v1/login", userLogin);
 
 // Admin routes
+// router.post("/admin/v1/createAdmin", createAdmin);
 router.post("/admin/v1/createAdmin", isValidToken, isAdmin, createAdmin);
 
 // Registration routes
