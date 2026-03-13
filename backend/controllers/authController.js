@@ -750,3 +750,68 @@ export const registerSeller = async (req, res) => {
     });
   }
 };
+
+// Add this to your user controller file
+
+export const getSellers = async (req, res) => {
+  try {
+    // Fetch all users with role 'seller'
+    const sellers = await User.find({
+      role: "seller",
+      isActive: { $ne: false }, // Optional: only active sellers
+    })
+      .select("-password") // Exclude password
+      .populate("addresses") // Populate addresses if needed
+      .populate("banks") // Populate banks if needed
+      .sort({ createdAt: -1 }); // Sort by newest first
+
+    return res.status(200).json({
+      success: true,
+      message: "Sellers fetched successfully",
+      sellers: sellers,
+      count: sellers.length,
+    });
+  } catch (error) {
+    console.error("Error fetching sellers:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// Optional: Get seller by ID
+export const getSellerById = async (req, res) => {
+  try {
+    const { sellerId } = req.params;
+
+    const seller = await User.findOne({
+      _id: sellerId,
+      role: "seller",
+    })
+      .select("-password")
+      .populate("addresses")
+      .populate("banks");
+
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: "Seller not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Seller fetched successfully",
+      seller: seller,
+    });
+  } catch (error) {
+    console.error("Error fetching seller:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};

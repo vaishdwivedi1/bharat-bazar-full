@@ -11,6 +11,7 @@ import {
   verifyEmailOtp,
   verifyOtp,
   resetPassword,
+  getSellers,
 } from "../controllers/authController.js";
 import { isAdmin, isValidToken } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/upload.js";
@@ -47,5 +48,7 @@ router.post("/v1/verify-otp", verifyOtp); // Verifies OTP for both email and mob
 router.post("/v1/send-email-otp", sendEmailOtp);
 router.post("/v1/send-mobile-otp", sendMobileOtp);
 router.post("/v1/verify-email-otp", verifyEmailOtp);
+
+router.get("/public/sellers", getSellers);
 
 export default router;
