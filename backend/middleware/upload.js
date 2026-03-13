@@ -2,14 +2,18 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
+// Use /tmp directory for Vercel (writable in serverless environment)
+const uploadDir =
+  process.env.NODE_ENV === "production" ? "/tmp/uploads" : "uploads";
+
 // Create uploads folder if not exists
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/");
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const uniqueName =
