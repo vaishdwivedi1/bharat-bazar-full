@@ -105,8 +105,10 @@ const Navbar = () => {
             onClick={() => navigate("/")}
             className="flex-shrink-0 cursor-pointer"
           >
-            <h1 className="text-2xl font-bold text-[hsl(24,100%,50%)]">
-              bharatBazar
+            <h1 className="text-3xl font-extrabold tracking-tight">
+              <span className="text-gray-900">bharat</span>
+              <span className="text-[hsl(24,100%,50%)]">B</span>
+              <span className="text-gray-900">azar</span>
             </h1>
           </div>
 
