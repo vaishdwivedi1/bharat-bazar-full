@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
+  // baseURL: "https://bharat-bazar-full.vercel.app/api",
   baseURL: "http://localhost:8080/api",
   timeout: 10000,
   headers: {

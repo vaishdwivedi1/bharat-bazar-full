@@ -25,19 +25,57 @@ import UserProfile from "./pages/user/Profile";
 import UserWishlist from "./pages/user/Wishlist";
 
 // Seller Pages (Protected - after login)
-import SellerAddProduct from "./pages/seller/AddProduct";
+// Dashboard & Analytics
 import SellerDashboard from "./pages/seller/Dashboard";
+import SellerAnalytics from "./pages/seller/SellerAnalytics";
+
+// Products
+import SellerAddProduct from "./pages/seller/AddProduct";
 import SellerEditProduct from "./pages/seller/EditProduct";
-import SellerInventory from "./pages/seller/Inventory";
-import SellerOrderDetail from "./pages/seller/OrderDetail";
-import SellerOrders from "./pages/seller/Orders";
 import SellerProductDetail from "./pages/seller/ProductDetail";
 import SellerProducts from "./pages/seller/Products";
-import SellerProfile from "./pages/seller/Profile";
-import SellerSettings from "./pages/seller/Settings";
+
+// Categories
+import SellerCategories from "./pages/seller/SellerCategories";
+import SellerAddCategory from "./pages/seller/SellerAddCategory";
+import SellerCategoryDetail from "./pages/seller/SellerCategoryDetail";
+import SellerEditCategory from "./pages/seller/SellerEditCategory";
+
+// Brands
+import SellerBrands from "./pages/seller/SellerBrands";
+import SellerAddBrand from "./pages/seller/SellerAddBrand";
+import SellerBrandDetail from "./pages/seller/SellerBrandDetail";
+import SellerEditBrand from "./pages/seller/SellerEditBrand";
+
+// Inventory
+import SellerInventory from "./pages/seller/SellerInventory";
+import SellerLowStock from "./pages/seller/SellerLowStock";
+import SellerStockAlerts from "./pages/seller/SellerStockAlerts";
+
+// Orders
+import SellerOrders from "./pages/seller/SellerOrders";
+import SellerOrderDetail from "./pages/seller/SellerOrderDetail";
+import SellerOrderPending from "./pages/seller/SellerOrderPending";
+import SellerOrderProcessing from "./pages/seller/SellerOrderProcessing";
+import SellerOrderShipped from "./pages/seller/SellerOrderShipped";
+import SellerOrderDelivered from "./pages/seller/SellerOrderDelivered";
+import SellerOrderCancelled from "./pages/seller/SellerOrderCancelled";
+import SellerOrderReturn from "./pages/seller/SellerOrderReturn";
+
+// Finance
+import SellerFinanceDashboard from "./pages/seller/SellerFinanceDashboard";
+import SellerTransactions from "./pages/seller/SellerTransactions";
+
+// Customers
+import SellerReviews from "./pages/seller/SellerReviews";
+
+// Settings
+import SellerProfile from "./pages/seller/SellerProfile";
+import SellerSettings from "./pages/seller/SellerSettings";
 
 import { ROUTES, SELLER_BASE_PATH, USER_BASE_PATH } from "./utils/StaticRoutes";
 import ForgotPassword from "./pages/ForgotPassword";
+// import ResetPassword from "./pages/ResetPassword";
 
 // ============ PROTECTED ROUTE COMPONENT ============
 const ProtectedRoute = ({
@@ -168,8 +206,7 @@ const Routing = () => {
               path=":id"
               element={
                 <UserLayout>
-                  {" "}
-                  <PublicProductDetail />{" "}
+                  <PublicProductDetail />
                 </UserLayout>
               }
             />
@@ -187,6 +224,7 @@ const Routing = () => {
         <Route path={ROUTES.LOGIN} element={<Login />} />
         <Route path={ROUTES.REGISTER} element={<Register />} />
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+        {/* <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} /> */}
 
         {/* Unauthorized Page */}
         <Route path={ROUTES.UNAUTHORIZED} element={<Unauthorized />} />
@@ -231,25 +269,73 @@ const Routing = () => {
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
+
+          {/* Dashboard Routes */}
           <Route
             path="dashboard"
             element={<SellerDashboard sellerData={userData} />}
           />
+          <Route path="analytics" element={<SellerAnalytics />} />
+
+          {/* Product Routes */}
           <Route path="products">
             <Route index element={<SellerProducts />} />
             <Route path="add" element={<SellerAddProduct />} />
             <Route path=":id" element={<SellerProductDetail />} />
             <Route path="edit/:id" element={<SellerEditProduct />} />
           </Route>
-          <Route path="inventory" element={<SellerInventory />} />
+
+          {/* Category Routes */}
+          <Route path="categories">
+            <Route index element={<SellerCategories />} />
+            <Route path="add" element={<SellerAddCategory />} />
+            <Route path=":id" element={<SellerCategoryDetail />} />
+            <Route path="edit/:id" element={<SellerEditCategory />} />
+          </Route>
+
+          {/* Brand Routes */}
+          <Route path="brands">
+            <Route index element={<SellerBrands />} />
+            <Route path="add" element={<SellerAddBrand />} />
+            <Route path=":id" element={<SellerBrandDetail />} />
+            <Route path="edit/:id" element={<SellerEditBrand />} />
+          </Route>
+
+          {/* Inventory Routes */}
+          <Route path="inventory">
+            <Route index element={<SellerInventory />} />
+            <Route path="low-stock" element={<SellerLowStock />} />
+            <Route path="alerts" element={<SellerStockAlerts />} />
+          </Route>
+
+          {/* Order Routes */}
           <Route path="orders">
             <Route index element={<SellerOrders />} />
+            <Route path="pending" element={<SellerOrderPending />} />
+            <Route path="processing" element={<SellerOrderProcessing />} />
+            <Route path="shipped" element={<SellerOrderShipped />} />
+            <Route path="delivered" element={<SellerOrderDelivered />} />
+            <Route path="cancelled" element={<SellerOrderCancelled />} />
+            <Route path="return" element={<SellerOrderReturn />} />
             <Route path=":id" element={<SellerOrderDetail />} />
           </Route>
+
+          {/* Finance Routes */}
+          <Route path="finance">
+            <Route index element={<SellerFinanceDashboard />} />
+            <Route path="transactions" element={<SellerTransactions />} />
+          </Route>
+
+          <Route path="reviews">
+            <Route index element={<SellerReviews />} />
+          </Route>
+
+          {/* Profile & Settings Routes */}
           <Route
             path="profile"
             element={<SellerProfile sellerData={userData} />}
           />
+
           <Route
             path="settings"
             element={<SellerSettings sellerData={userData} />}

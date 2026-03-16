@@ -11,4 +11,5 @@ export const StaticAPI = {
   getAllCategories: "/category/v1/getAllCategory",
   getAllActiveCategory: "/category/v1/getAllActiveCategory",
   getCategoryProducts: "/category/v1/getCategoryProducts",
+  getSellerCategories: "/category/v1/seller/getSellerCategories",
 };

@@ -75,13 +75,13 @@ router.delete(
   deleteSellerCategory,
 );
 router.get(
-  "/v1/seller/categories",
+  "/v1/seller/getSellerCategories",
   isValidToken,
   isSeller,
   getSellerCategories,
 ); // Get all categories created by this seller
 router.get(
-  "/v1/seller/category/:categoryId",
+  "/v1/seller/getSellerCategoryDetails/:categoryId",
   isValidToken,
   isSeller,
   getSellerCategoryDetails,

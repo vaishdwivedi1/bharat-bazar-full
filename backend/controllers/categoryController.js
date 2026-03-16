@@ -319,63 +319,141 @@ export const addSellerCategory = async (req, res) => {
       name,
       slug,
       description,
+      icon,
+      isFeatured,
       isActive = true,
-      parentCategory, // Optional: link to platform category
+      productsCount,
+      subcategories,
+      level,
+      parentCategory,
     } = req.body;
 
     const imageFile = req.file;
-    const sellerId = req.user._id; // From auth middleware
+    const sellerId = req.user?._id; // Add optional chaining for safety
 
+    // Validate seller ID
+    if (!sellerId) {
+      return res.status(401).json({
+        success: false,
+        message: "Seller not authenticated",
+      });
+    }
+
+    // Validate required fields
     if (!name) {
-      return res.status(400).json({ message: "Name is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Name is required",
+      });
     }
 
     // Handle image upload
     let imageUrl = "";
     if (imageFile) {
       try {
+        // Check if uploadOnCloudinary function exists
+        if (typeof uploadOnCloudinary !== "function") {
+          throw new Error("Cloudinary upload function not configured");
+        }
+
         const cloudinaryResponse = await uploadOnCloudinary(imageFile.path);
-        imageUrl = cloudinaryResponse.secure_url;
-        fs.unlinkSync(imageFile.path);
+
+        // Check if upload was successful
+        if (cloudinaryResponse && cloudinaryResponse.secure_url) {
+          imageUrl = cloudinaryResponse.secure_url;
+        } else {
+          throw new Error("Failed to get image URL from Cloudinary");
+        }
+
+        // Safely delete temp file
+        if (fs.existsSync(imageFile.path)) {
+          fs.unlinkSync(imageFile.path);
+        }
       } catch (uploadError) {
         console.error("Image upload error:", uploadError);
-        return res.status(500).json({ message: "Error uploading image" });
+        // Don't fail the whole request if image upload fails
+        // Just proceed without image
+        imageUrl = "";
       }
     }
 
     // Check if seller already has a category with this name
     const existingCategory = await Category.findOne({
-      name: name,
+      name: { $regex: new RegExp(`^${name}$`, "i") }, // Case insensitive search
       seller: sellerId,
       type: "seller",
     });
 
     if (existingCategory) {
       return res.status(400).json({
+        success: false,
         message: "You already have a category with this name",
       });
     }
 
-    const category = await Category.create({
+    // Parse subcategories if they're sent as JSON string
+    let parsedSubcategories = [];
+    if (subcategories) {
+      try {
+        parsedSubcategories =
+          typeof subcategories === "string"
+            ? JSON.parse(subcategories)
+            : subcategories;
+      } catch (e) {
+        console.warn("Error parsing subcategories:", e);
+        parsedSubcategories = [];
+      }
+    }
+
+    // Create category with all fields
+    const categoryData = {
       name,
-      slug: slug || name.toLowerCase().replace(/ /g, "-"),
+      slug: slug || name.toLowerCase().replace(/[^\w]+/g, "-"), // Better slug generation
+      description: description || "",
       image: imageUrl,
-      description,
+      icon: icon || "📦",
+      isFeatured: isFeatured === "true" || isFeatured === true,
       isActive: isActive === "true" || isActive === true,
+      productsCount: productsCount || "0",
+      subcategories: parsedSubcategories,
+      level: level ? parseInt(level) : 0,
       seller: sellerId,
       type: "seller",
-      parentCategory: parentCategory || null,
-    });
+    };
+
+    // Add parentCategory only if provided and valid
+    if (
+      parentCategory &&
+      parentCategory !== "null" &&
+      parentCategory !== "undefined"
+    ) {
+      categoryData.parentCategory = parentCategory;
+    }
+
+    const category = await Category.create(categoryData);
 
     return res.status(201).json({
+      success: true,
       message: "Seller category created successfully",
       category,
     });
   } catch (error) {
-    console.log({ error });
-    return res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    console.error("Error in addSellerCategory:", error);
+
+    // Clean up temp file if it exists and there's an error
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.error("Error deleting temp file:", unlinkError);
+      }
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 };
 
@@ -545,7 +623,7 @@ export const deleteSellerCategory = async (req, res) => {
 
 export const getSellerCategories = async (req, res) => {
   try {
-    const sellerId = req.user._id;
+    const sellerId = req.user.id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;

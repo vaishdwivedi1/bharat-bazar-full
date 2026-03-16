@@ -68,8 +68,6 @@ const Login = () => {
       localStorage.setItem("token", response.token);
       localStorage.setItem("user", JSON.stringify(response.data));
 
-      alert("Login successful!");
-
       // Redirect based on user role
       const userRole = response.data.role;
       if (userRole === "seller") {
@@ -129,7 +127,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(24,100%,50%)] to-[hsl(24,100%,40%)] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-200 p-4">
       <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
         {/* Logo */}
         <div className="text-center mb-6">
