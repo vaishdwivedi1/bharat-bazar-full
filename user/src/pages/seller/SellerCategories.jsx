@@ -7,10 +7,18 @@ import {
   HiOutlinePlus,
   HiOutlineSearch,
   HiOutlineTrash,
+  HiOutlineUpload,
+  HiOutlineX,
 } from "react-icons/hi";
 import { toast } from "react-toastify";
-import { GETMethod } from "../../utils/service";
+import {
+  DELETEMethod,
+  GETMethod,
+  POSTMethod,
+  PUTMethod,
+} from "../../utils/service";
 import { StaticAPI } from "../../utils/StaticApi";
+import { Delete } from "lucide-react";
 
 const SellerCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -25,16 +33,21 @@ const SellerCategories = () => {
     name: "",
     description: "",
     slug: "",
-    image: "",
     icon: "📦",
     isFeatured: false,
     isActive: true,
     subcategories: [],
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [subcategoryInput, setSubcategoryInput] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Refs
+  const fileInputRef = useRef(null);
+  const iconInputRef = useRef(null);
 
   // Observer for infinite scroll
   const observer = useRef();
@@ -62,7 +75,7 @@ const SellerCategories = () => {
 
     try {
       const response = await GETMethod(
-        `${StaticAPI.getSellerCategories}?page=${pageNum}&limit=10`,
+        `${StaticAPI.getSellerCategories}?page=${pageNum}&limit=10&search=${searchTerm}`,
       );
 
       const newCategories = response.categories || [];
@@ -73,7 +86,7 @@ const SellerCategories = () => {
           : [...prev, ...newCategories],
       );
 
-      setHasMore(newCategories.length === 10); // If we got less than limit, no more data
+      setHasMore(newCategories.length === 10);
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast.error("Failed to load categories");
@@ -83,22 +96,6 @@ const SellerCategories = () => {
       setLoadingMore(false);
     }
   };
-
-  // Initial load and page changes
-  useEffect(() => {
-    fetchCategories(page, page === 1);
-  }, [page]);
-
-  // Reset pagination when searching
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      setPage(1);
-      setCategories([]);
-      fetchCategories(1, true);
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
 
   // Generate slug from name
   const generateSlug = (name) => {
@@ -123,6 +120,50 @@ const SellerCategories = () => {
         ...formData,
         [name]: type === "checkbox" ? checked : value,
       });
+    }
+  };
+
+  // Handle icon input click to open emoji keyboard
+  const handleIconClick = () => {
+    // Focus on the input
+    if (iconInputRef.current) {
+      iconInputRef.current.focus();
+    }
+  };
+
+  // Handle file selection
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size should be less than 5MB");
+        return;
+      }
+
+      setImageFile(file);
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remove selected image
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -155,13 +196,24 @@ const SellerCategories = () => {
       name: "",
       description: "",
       slug: "",
-      image: "",
       icon: "📦",
       isFeatured: false,
       isActive: true,
       subcategories: [],
     });
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     setShowModal(true);
+
+    // Small timeout to ensure modal is rendered before focusing
+    setTimeout(() => {
+      if (iconInputRef.current) {
+        iconInputRef.current.focus();
+      }
+    }, 100);
   };
 
   // Open modal for editing category
@@ -171,50 +223,98 @@ const SellerCategories = () => {
       name: category.name || "",
       description: category.description || "",
       slug: category.slug || "",
-      image: category.image || "",
       icon: category.icon || "📦",
       isFeatured: category.isFeatured || false,
       isActive: category.isActive !== false,
       subcategories: category.subcategories || [],
     });
+    // Set image preview if category has image
+    if (category.image) {
+      setImagePreview(category.image);
+    } else {
+      setImagePreview("");
+    }
+    setImageFile(null); // Reset file selection
     setShowModal(true);
+
+    // Small timeout to ensure modal is rendered before focusing
+    setTimeout(() => {
+      if (iconInputRef.current) {
+        iconInputRef.current.focus();
+      }
+    }, 100);
   };
 
-  // Handle form submit (create/update)
+  // Handle form submit (create/update) with file upload - UPDATED API ENDPOINT
   const handleSubmit = async (e) => {
     e.preventDefault();
     setActionLoading(true);
 
     try {
       const token = localStorage.getItem("token");
+
+      // Updated URL for create - using /add-category as per Postman request
       const url = editingCategory
-        ? `http://localhost:8080/api/category/v1/seller/updateCategory/${editingCategory._id}`
-        : "http://localhost:8080/api/category/v1/seller/createCategory";
+        ? `${StaticAPI.editCategory}/${editingCategory._id}`
+        : StaticAPI.addCategory;
 
       const method = editingCategory ? "put" : "post";
 
-      const response = await axios({
-        method,
-        url,
-        data: formData,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
 
-      if (response.data.success) {
-        toast.success(
-          editingCategory
-            ? "Category updated successfully"
-            : "Category created successfully",
-        );
-        setShowModal(false);
-        // Refresh the list
-        setPage(1);
-        setCategories([]);
-        fetchCategories(1, true);
+      // Append all form fields
+      formDataToSend.append("name", formData.name);
+      formDataToSend.append("description", formData.description || "");
+      formDataToSend.append("slug", formData.slug);
+      formDataToSend.append("icon", formData.icon);
+
+      // Format subcategories as per Postman example: [test1,test2,test3]
+      // If subcategories array exists, format it as a string
+      if (formData.subcategories && formData.subcategories.length > 0) {
+        // Format as [item1,item2,item3] without quotes
+        const subcategoriesString = `[${formData.subcategories.join(",")}]`;
+        formDataToSend.append("subcategories", subcategoriesString);
+      } else {
+        formDataToSend.append("subcategories", "[]");
       }
+
+      // Append image file if selected
+      if (imageFile) {
+        formDataToSend.append("image", imageFile);
+      }
+
+      if (editingCategory) {
+        await PUTMethod({
+          url,
+          formDataToSend,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+      } else {
+        await POSTMethod({
+          url,
+          formDataToSend,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+      }
+
+      toast.success(
+        editingCategory
+          ? "Category updated successfully"
+          : "Category created successfully",
+      );
+      setShowModal(false);
+      // Reset image states
+      setImageFile(null);
+      setImagePreview("");
+      // Refresh the list
+      setPage(1);
+      setCategories([]);
+      fetchCategories(1, true);
     } catch (error) {
       console.error("Error saving category:", error);
       toast.error(error.response?.data?.message || "Failed to save category");
@@ -235,25 +335,17 @@ const SellerCategories = () => {
 
     setActionLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.delete(
-        `http://localhost:8080/api/category/v1/seller/deleteCategory/${categoryToDelete._id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
+      const response = await DELETEMethod(
+        `${StaticAPI.deleteCategory}/${categoryToDelete._id}`,
       );
 
-      if (response.data.success) {
-        toast.success("Category deleted successfully");
-        setShowDeleteModal(false);
-        setCategoryToDelete(null);
-        // Remove from list without refetch
-        setCategories((prev) =>
-          prev.filter((c) => c._id !== categoryToDelete._id),
-        );
-      }
+      toast.success("Category deleted successfully");
+      setShowDeleteModal(false);
+      setCategoryToDelete(null);
+      // Remove from list without refetch
+      setCategories((prev) =>
+        prev.filter((c) => c._id !== categoryToDelete._id),
+      );
     } catch (error) {
       console.error("Error deleting category:", error);
       toast.error(error.response?.data?.message || "Failed to delete category");
@@ -300,6 +392,22 @@ const SellerCategories = () => {
       cat.description?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  // Initial load and page changes
+  useEffect(() => {
+    fetchCategories(page, page === 1);
+  }, [page]);
+
+  // Reset pagination when searching
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      setPage(1);
+      setCategories([]);
+      fetchCategories(1, true);
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
   return (
     <div className="p-2">
       {/* Header */}
@@ -339,7 +447,7 @@ const SellerCategories = () => {
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Icon
+                      Icon/Image
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Name
@@ -376,8 +484,17 @@ const SellerCategories = () => {
                             className="hover:bg-gray-50"
                           >
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-2xl">
-                                {category.icon || "📦"}
+                              <div className="flex items-center gap-2">
+                                <div className="text-2xl">
+                                  {category.icon || "📦"}
+                                </div>
+                                {category.image && (
+                                  <img
+                                    src={category.image}
+                                    alt={category.name}
+                                    className="w-8 h-8 object-cover rounded"
+                                  />
+                                )}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -462,8 +579,17 @@ const SellerCategories = () => {
                         return (
                           <tr key={category._id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-2xl">
-                                {category.icon || "📦"}
+                              <div className="flex items-center gap-2">
+                                <div className="text-2xl">
+                                  {category.icon || "📦"}
+                                </div>
+                                {category.image && (
+                                  <img
+                                    src={category.image}
+                                    alt={category.name}
+                                    className="w-8 h-8 object-cover rounded"
+                                  />
+                                )}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -515,19 +641,6 @@ const SellerCategories = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <button
-                                onClick={() => handleToggleStatus(category)}
-                                className="text-gray-600 hover:text-gray-900 mr-3"
-                                title={
-                                  category.isActive ? "Deactivate" : "Activate"
-                                }
-                              >
-                                {category.isActive ? (
-                                  <HiOutlineEyeOff className="w-5 h-5" />
-                                ) : (
-                                  <HiOutlineEye className="w-5 h-5" />
-                                )}
-                              </button>
-                              <button
                                 onClick={() => handleEdit(category)}
                                 className="text-blue-600 hover:text-blue-900 mr-3"
                                 title="Edit"
@@ -577,24 +690,23 @@ const SellerCategories = () => {
         )}
       </div>
 
-      {/* Create/Edit Modal (keep as is) */}
+      {/* Create/Edit Modal with File Upload and Auto-focus on Icon */}
       {showModal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
               <h2 className="text-xl font-semibold text-gray-800">
                 {editingCategory ? "Edit Category" : "Create New Category"}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 text-2xl"
               >
                 ×
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6">
-              {/* ... form fields same as before ... */}
               <div className="space-y-4">
                 {/* Name */}
                 <div>
@@ -646,7 +758,7 @@ const SellerCategories = () => {
                   />
                 </div>
 
-                {/* Icon and Image */}
+                {/* Icon and Image Upload */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -655,24 +767,75 @@ const SellerCategories = () => {
                     <input
                       type="text"
                       name="icon"
+                      ref={iconInputRef}
                       value={formData.icon}
                       onChange={handleInputChange}
+                      onClick={handleIconClick}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                       placeholder="📦"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Image URL
+                      Category Image
                     </label>
-                    <input
-                      type="text"
-                      name="image"
-                      value={formData.image}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      placeholder="https://example.com/image.jpg"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageChange}
+                        accept="image/*"
+                        className="hidden"
+                        id="category-image"
+                      />
+                      <label
+                        htmlFor="category-image"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 flex items-center justify-center gap-2"
+                      >
+                        <HiOutlineUpload className="w-5 h-5" />
+                        <span>Choose Image</span>
+                      </label>
+                      {(imagePreview || imageFile) && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="p-2 text-red-600 hover:text-red-800"
+                        >
+                          <HiOutlineX className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Image Preview */}
+                    {(imagePreview || imageFile) && (
+                      <div className="mt-2 relative">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                        />
+                        {imageFile && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {imageFile.name} (
+                            {(imageFile.size / 1024).toFixed(2)} KB)
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Show existing image when editing */}
+                    {editingCategory && !imageFile && imagePreview && (
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-500 mb-1">
+                          Current Image:
+                        </p>
+                        <img
+                          src={imagePreview}
+                          alt="Current"
+                          className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -772,9 +935,9 @@ const SellerCategories = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal (keep as is) */}
+      {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-md p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Delete Category

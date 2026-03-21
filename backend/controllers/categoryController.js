@@ -329,7 +329,7 @@ export const addSellerCategory = async (req, res) => {
     } = req.body;
 
     const imageFile = req.file;
-    const sellerId = req.user?._id; // Add optional chaining for safety
+    const sellerId = req.user?.id; // Add optional chaining for safety
 
     // Validate seller ID
     if (!sellerId) {
@@ -462,7 +462,7 @@ export const editSellerCategory = async (req, res) => {
     const { categoryId } = req.params;
     const { name, slug, description, isActive, parentCategory } = req.body;
     const imageFile = req.file;
-    const sellerId = req.user._id;
+    const sellerId = req.user.id;
 
     if (!categoryId) {
       return res.status(400).json({ message: "Category ID is required" });
@@ -556,7 +556,7 @@ export const editSellerCategory = async (req, res) => {
 export const deleteSellerCategory = async (req, res) => {
   try {
     const { categoryId } = req.params;
-    const sellerId = req.user._id;
+    const sellerId = req.user.id;
 
     if (!categoryId) {
       return res.status(400).json({ message: "Category ID is required" });
