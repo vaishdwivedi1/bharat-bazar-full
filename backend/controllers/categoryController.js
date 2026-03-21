@@ -626,21 +626,29 @@ export const getSellerCategories = async (req, res) => {
     const sellerId = req.user.id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
     const skip = (page - 1) * limit;
 
-    const categories = await Category.find({
+    // Build search query
+    let query = {
       seller: sellerId,
       type: "seller",
-    })
+    };
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const categories = await Category.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate("parentCategory", "name image");
 
-    const totalCategories = await Category.countDocuments({
-      seller: sellerId,
-      type: "seller",
-    });
+    const totalCategories = await Category.countDocuments(query);
     const totalPages = Math.ceil(totalCategories / limit);
 
     // Get product counts for each category
@@ -652,7 +660,7 @@ export const getSellerCategories = async (req, res) => {
         });
         return {
           ...category.toObject(),
-          productCount,
+          productsCount: productCount,
         };
       }),
     );
@@ -923,5 +931,43 @@ export const getCategoryProducts = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+// Toggle seller category status
+export const toggleSellerCategoryStatus = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { isActive } = req.body;
+    const sellerId = req.user.id;
+
+    const category = await Category.findOne({
+      _id: categoryId,
+      seller: sellerId,
+      type: "seller",
+    });
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found or you don't have permission",
+      });
+    }
+
+    category.isActive = isActive;
+    await category.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Category ${isActive ? "activated" : "deactivated"} successfully`,
+      category,
+    });
+  } catch (error) {
+    console.error("Error toggling category status:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };

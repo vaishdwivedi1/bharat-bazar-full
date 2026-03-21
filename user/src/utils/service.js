@@ -61,3 +61,21 @@ export const DELETEMethod = async (url, config = {}) => {
   const res = await api.delete(url, config);
   return res.data;
 };
+
+export const POSTWithFiles = async (url, formData) => {
+  const res = await api.post(url, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data;
+};
+
+export const PUTWithFiles = async (url, formData) => {
+  const res = await api.put(url, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data;
+};

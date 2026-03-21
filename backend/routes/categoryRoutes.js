@@ -15,7 +15,7 @@ import {
   getSellerCategories,
   getSellerCategoryDetails,
   getAllSellerCategories,
-
+  toggleSellerCategoryStatus,
   // Common
   getCategoryProducts,
 } from "../controllers/categoryController.js";
@@ -93,6 +93,12 @@ router.get(
   getAllSellerCategories,
 ); // Get all categories (platform + seller's)
 
+router.put(
+  "/v1/seller/toggleCategoryStatus/:categoryId",
+  isValidToken,
+  isSeller,
+  toggleSellerCategoryStatus,
+);
 // ============ PUBLIC APIs ============
 // These are visible to all users
 router.get("/v1/getAllActiveCategory", getAllActiveCategory);

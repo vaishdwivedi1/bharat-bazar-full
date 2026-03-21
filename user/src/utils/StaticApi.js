@@ -12,7 +12,8 @@ export const StaticAPI = {
   getAllActiveCategory: "/category/v1/getAllActiveCategory",
   getCategoryProducts: "/category/v1/getCategoryProducts",
   getSellerCategories: "/category/v1/seller/getSellerCategories",
-  addCategory: "/category/v1/seller/add-category",
-  deleteCategory: "/category/v1/seller/delete-category",
-  editCategory: "category/v1/seller/edit-category",
+  addSellerCategory: "/category/v1/seller/add-category",
+  editSellerCategory: "/category/v1/seller/edit-category",
+  deleteSellerCategory: "/category/v1/seller/delete-category",
+  toggleSellerCategoryStatus: "/category/v1/seller/toggleCategoryStatus",
 };
