@@ -100,9 +100,13 @@ app.use(
 
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/api/auth", authRoutes);
-app.use("/api/category", categoryRoutes);
-app.use("/api/products", productRoutes);
+// app.use("/api/auth", authRoutes);
+// app.use("/api/category", categoryRoutes);
+// app.use("/api/products", productRoutes);
+
+app.use("/auth", authRoutes);
+app.use("/category", categoryRoutes);
+app.use("/products", productRoutes);
 
 app.get("/", (req, res) => {
   res.send("Backend is running!");
