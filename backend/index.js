@@ -1,4 +1,3 @@
-
 import cors from "cors";
 import { configDotenv } from "dotenv";
 import express from "express";
@@ -14,17 +13,8 @@ configDotenv();
 
 const app = express();
 
-let isConnected = false;
-const connectDBOnce = async () => {
-  if (isConnected) return;
-  await connectDB();
-  isConnected = true;
-};
-
-app.use(async (req, res, next) => {
-  await connectDBOnce();
-  next();
-});
+// Connect to database once at startup
+let dbConnectionPromise = connectDB();
 
 app.use(express.json());
 
@@ -32,7 +22,7 @@ app.use(
   cors({
     origin: ["http://localhost:5173", "https://bharat-bazar-full.vercel.app"],
     credentials: true,
-  }),
+  })
 );
 
 app.use(
@@ -40,21 +30,37 @@ app.use(
     name: "session",
     keys: ["cyberwolve"],
     maxAge: 24 * 60 * 60 * 1000,
-  }),
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  })
 );
 
 app.use(express.urlencoded({ extended: true }));
 
-// app.use("/api/auth", authRoutes);
-// app.use("/api/category", categoryRoutes);
-// app.use("/api/products", productRoutes);
+// Wait for database connection before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await dbConnectionPromise;
+    next();
+  } catch (error) {
+    console.error("Database connection error:", error);
+    res.status(500).json({ error: "Database connection failed" });
+  }
+});
 
-// app.use("/auth", authRoutes);
-// app.use("/category", categoryRoutes);
-// app.use("/products", productRoutes);
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/category", categoryRoutes);
+app.use("/api/products", productRoutes);
 
 app.get("/", (req, res) => {
   res.send("Backend is running!");
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Something broke!" });
 });
 
 export default serverless(app);
