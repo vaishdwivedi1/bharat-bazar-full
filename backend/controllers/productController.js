@@ -8,55 +8,6 @@ import uploadOnCloudinary, {
 
 // ============ USER APIs (Public/Authenticated Users) ============
 
-export const getAllProducts = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    const sortBy = req.query.sortBy || "createdAt";
-    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
-
-    const query = {};
-
-    // Filter by active status
-    if (req.query.isActive !== undefined) {
-      query.isActive = req.query.isActive === "true";
-    }
-
-    // Filter by featured
-    if (req.query.isFeatured === "true") {
-      query.isFeatured = true;
-    }
-
-    const products = await Product.find(query)
-      .populate("category", "name slug image")
-      .populate("subCategory", "name slug")
-      .populate("seller", "businessName storeName email")
-      .sort({ [sortBy]: sortOrder })
-      .skip(skip)
-      .limit(limit);
-
-    const totalProducts = await Product.countDocuments(query);
-    const totalPages = Math.ceil(totalProducts / limit);
-
-    return res.status(200).json({
-      success: true,
-      count: products.length,
-      totalProducts,
-      totalPages,
-      currentPage: page,
-      products,
-    });
-  } catch (error) {
-    console.error("Error in getAllProducts:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    });
-  }
-};
-
 export const getAllActiveProducts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -146,7 +97,7 @@ export const getProductDetailsUsers = async (req, res) => {
       .populate("category", "name slug image description")
       .populate("subCategory", "name slug")
       .populate("seller", "businessName storeName email phone address")
-      .populate("reviews", "rating comment user createdAt")
+      // .populate("reviews", "rating comment user createdAt")
       .populate("relatedProducts", "name images pricingTiers slug");
 
     if (!product) {
@@ -155,10 +106,6 @@ export const getProductDetailsUsers = async (req, res) => {
         message: "Product not found",
       });
     }
-
-    // Increment view count if you have that field
-    // product.views = (product.views || 0) + 1;
-    // await product.save();
 
     return res.status(200).json({
       success: true,
@@ -846,182 +793,6 @@ export const getProductAnalytics = async (req, res) => {
   }
 };
 
-// export const createProduct = async (req, res) => {
-//   try {
-//     const sellerId = req.user.id;
-//     const {
-//       name,
-//       shortDescription,
-//       longDescription,
-//       slug,
-//       minimumOrderQuantity,
-//       totalStock,
-//       category,
-//       subCategory,
-//       isFeatured,
-//       isActive,
-//       bulkOrderEligible,
-//       gstIncluded,
-//       gstRate,
-//       pricingTiers,
-//       specifications,
-//       highlights,
-//       warrantyInfo,
-//       shippingDetails,
-//     } = req.body;
-
-//     // Validate required fields
-//     if (
-//       !name ||
-//       !shortDescription ||
-//       !longDescription ||
-//       !category ||
-//       !pricingTiers
-//     ) {
-//       return res.status(400).json({
-//         success: false,
-//         message:
-//           "Missing required fields: name, shortDescription, longDescription, category, pricingTiers",
-//       });
-//     }
-
-//     // Parse JSON strings if needed
-//     let parsedPricingTiers = pricingTiers;
-//     let parsedSpecifications = specifications;
-//     let parsedHighlights = highlights;
-//     let parsedWarrantyInfo = warrantyInfo;
-//     let parsedShippingDetails = shippingDetails;
-
-//     try {
-//       if (typeof pricingTiers === "string")
-//         parsedPricingTiers = JSON.parse(pricingTiers);
-//       if (typeof specifications === "string")
-//         parsedSpecifications = JSON.parse(specifications);
-//       if (typeof highlights === "string")
-//         parsedHighlights = JSON.parse(highlights);
-//       if (typeof warrantyInfo === "string")
-//         parsedWarrantyInfo = JSON.parse(warrantyInfo);
-//       if (typeof shippingDetails === "string")
-//         parsedShippingDetails = JSON.parse(shippingDetails);
-//     } catch (e) {
-//       console.error("Error parsing JSON fields:", e);
-//     }
-
-//     // Handle image uploads
-//     const imageFiles = req.files;
-//     const images = [];
-
-//     if (imageFiles && imageFiles.length > 0) {
-//       for (const file of imageFiles) {
-//         try {
-//           const cloudinaryResponse = await uploadOnCloudinary(file.path);
-//           images.push({ url: cloudinaryResponse.secure_url });
-//           if (fs.existsSync(file.path)) {
-//             fs.unlinkSync(file.path);
-//           }
-//         } catch (uploadError) {
-//           console.error("Error uploading image:", uploadError);
-//         }
-//       }
-//     }
-
-//     if (images.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "At least one product image is required",
-//       });
-//     }
-
-//     // Generate slug if not provided
-//     let finalSlug = slug;
-//     if (!finalSlug) {
-//       finalSlug = name
-//         .toLowerCase()
-//         .replace(/[^a-z0-9]+/g, "-")
-//         .replace(/(^-|-$)/g, "");
-//     }
-
-//     // Check for duplicate slug
-//     const existingProduct = await Product.findOne({ slug: finalSlug });
-//     if (existingProduct) {
-//       finalSlug = `${finalSlug}-${Date.now()}`;
-//     }
-
-//     // Create product
-//     const product = await Product.create({
-//       name,
-//       shortDescription,
-//       longDescription,
-//       slug: finalSlug,
-//       minimumOrderQuantity: minimumOrderQuantity || 1,
-//       totalStock: totalStock || 0,
-//       category,
-//       subCategory: subCategory || null,
-//       seller: sellerId,
-//       isFeatured: isFeatured === "true" || isFeatured === true,
-//       isActive: isActive === "true" || isActive !== false,
-//       bulkOrderEligible:
-//         bulkOrderEligible === "true" || bulkOrderEligible !== false,
-//       gstIncluded: gstIncluded === "true" || gstIncluded !== false,
-//       gstRate: gstRate || 18,
-//       pricingTiers: parsedPricingTiers,
-//       specifications: parsedSpecifications || [],
-//       highlights: parsedHighlights || [],
-//       warrantyInfo: parsedWarrantyInfo || {
-//         duration: "",
-//         type: "none",
-//         details: "",
-//         terms: "",
-//       },
-//       shippingDetails: parsedShippingDetails || {
-//         shippingMethods: [
-//           {
-//             methodName: "standard",
-//             cost: 0,
-//             estimatedDays: { min: 3, max: 7 },
-//             isActive: true,
-//           },
-//         ],
-//         returnPolicy: {
-//           eligible: true,
-//           period: 7,
-//           conditions: "",
-//           shippingPaidBy: "seller",
-//         },
-//       },
-//       images,
-//       rating: {
-//         average: 0,
-//         count: 0,
-//         distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-//       },
-//     });
-
-//     return res.status(201).json({
-//       success: true,
-//       message: "Product created successfully",
-//       product,
-//     });
-//   } catch (error) {
-//     console.error("Error in createProduct:", error);
-
-//     // Clean up uploaded files
-//     if (req.files) {
-//       for (const file of req.files) {
-//         if (fs.existsSync(file.path)) {
-//           fs.unlinkSync(file.path);
-//         }
-//       }
-//     }
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Internal server error",
-//       error: error.message,
-//     });
-//   }
-// };
-
 export const createProduct = async (req, res) => {
   try {
     const sellerId = req.user.id;
@@ -1226,6 +997,7 @@ export const createProduct = async (req, res) => {
     });
   }
 };
+
 export const editProduct = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -1380,7 +1152,112 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
+export const changeProductStatusBySeller = async (req, res) => {
+  try {
+    const { productId, status } = req.body;
+    const sellerId = req.user.id; // FIXED: Changed from adminId to sellerId
+
+    if (!productId || !status) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID and status are required",
+      });
+    }
+
+    // Find product and ensure it belongs to this seller
+    const product = await Product.findOne({
+      _id: productId,
+      seller: sellerId,
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found or you don't have permission",
+      });
+    }
+
+    // Sellers can only activate or deactivate products
+    // They cannot flag or hide products
+    if (status === "active") {
+      product.isActive = true;
+    } else if (status === "inactive") {
+      product.isActive = false;
+    } else {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Sellers can only activate or deactivate products. Use 'active' or 'inactive' status only.",
+      });
+    }
+
+    await product.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Product ${status === "active" ? "activated" : "deactivated"} successfully`,
+      product,
+    });
+  } catch (error) {
+    console.error("Error in changeProductStatusBySeller:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
 // ============ ADMIN APIs ============
+
+export const getAllProducts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const sortBy = req.query.sortBy || "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+
+    const query = {};
+
+    // Filter by active status
+    if (req.query.isActive !== undefined) {
+      query.isActive = req.query.isActive === "true";
+    }
+
+    // Filter by featured
+    if (req.query.isFeatured === "true") {
+      query.isFeatured = true;
+    }
+
+    const products = await Product.find(query)
+      .populate("category", "name slug image")
+      .populate("subCategory", "name slug")
+      .populate("seller", "businessName storeName email")
+      .sort({ [sortBy]: sortOrder })
+      .skip(skip)
+      .limit(limit);
+
+    const totalProducts = await Product.countDocuments(query);
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    return res.status(200).json({
+      success: true,
+      count: products.length,
+      totalProducts,
+      totalPages,
+      currentPage: page,
+      products,
+    });
+  } catch (error) {
+    console.error("Error in getAllProducts:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
 
 export const getFlaggedProducts = async (req, res) => {
   try {
@@ -1477,62 +1354,6 @@ export const changeProductStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in changeProductStatus:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    });
-  }
-};
-
-export const changeProductStatusBySeller = async (req, res) => {
-  try {
-    const { productId, status } = req.body;
-    const sellerId = req.user.id; // FIXED: Changed from adminId to sellerId
-
-    if (!productId || !status) {
-      return res.status(400).json({
-        success: false,
-        message: "Product ID and status are required",
-      });
-    }
-
-    // Find product and ensure it belongs to this seller
-    const product = await Product.findOne({
-      _id: productId,
-      seller: sellerId,
-    });
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found or you don't have permission",
-      });
-    }
-
-    // Sellers can only activate or deactivate products
-    // They cannot flag or hide products
-    if (status === "active") {
-      product.isActive = true;
-    } else if (status === "inactive") {
-      product.isActive = false;
-    } else {
-      return res.status(403).json({
-        success: false,
-        message:
-          "Sellers can only activate or deactivate products. Use 'active' or 'inactive' status only.",
-      });
-    }
-
-    await product.save();
-
-    return res.status(200).json({
-      success: true,
-      message: `Product ${status === "active" ? "activated" : "deactivated"} successfully`,
-      product,
-    });
-  } catch (error) {
-    console.error("Error in changeProductStatusBySeller:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",

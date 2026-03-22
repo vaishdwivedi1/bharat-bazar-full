@@ -4,7 +4,6 @@ import FeaturedProducts from "../../components/user/home/FeaturedProducts";
 import HeroSection from "../../components/user/home/HeroSection";
 import StatsSection from "../../components/user/home/StatsSection";
 import TopSuppliersCarousel from "../../components/user/home/TopSuppliersCarousel";
-import WhyChooseUs from "../../components/user/home/WhyChooseUs";
 import UserLayout from "../../components/UserLayout";
 
 const Home = () => {
@@ -18,7 +17,6 @@ const Home = () => {
         <TopSuppliersCarousel />
         <BulkDeals />
         <StatsSection />
-        <WhyChooseUs />
       </div>{" "}
     </UserLayout>
   );

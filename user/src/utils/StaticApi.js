@@ -23,4 +23,13 @@ export const StaticAPI = {
   editProduct: "/products/v1/editProduct",
   deleteProduct: "/products/v1/deleteProduct",
   changeProductStatus: "/products/v1/changeProductStatus",
+  getAllProducts: "/products/v1/getAllProducts",
+  getAllActiveProducts: "/products/v1/getAllActiveProducts",
+  getAllFeaturedProducts: "/products/v1/getAllFeaturedProducts",
+  getProductDetails: "/products/v1/getProductDetailsUsers",
+  getProductsByCategory: "/products/v1/getProductsByCategory",
+  searchProducts: "/products/v1/searchProducts",
+  getTopSellingProducts: "/products/v1/getTopSellingProducts",
+  getDiscountedProducts: "/products/v1/getDiscountedProducts",
+  getRelatedProducts: "/products/v1/getRelatedProducts",
 };

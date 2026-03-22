@@ -1,118 +1,127 @@
-// components/FeaturedProducts.jsx
-import React, { useRef } from "react";
-import { ChevronRight, ChevronLeft, Star, Shield } from "lucide-react";
-// Import Swiper React components
+import { useState, useEffect, useRef } from "react";
+import { ChevronRight, ChevronLeft, Star, Shield, Loader } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
-// Import Swiper styles
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
-// Import required modules
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
+import { GETMethod } from "../../../utils/service";
+import { StaticAPI } from "../../../utils/StaticApi";
 
 const FeaturedProducts = () => {
-  // Create refs for custom navigation
   const prevRef = useRef(null);
   const nextRef = useRef(null);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const products = [
-    {
-      name: "Samsung Galaxy A54 5G Bulk Pack",
-      description: "Samsung Galaxy A54 5G - 8GB RAM, 256GB Storage",
-      price: "27,000 - 28,500",
-      unit: "pieces",
-      moq: "50",
-      image: "📱",
-      rating: 4.8,
-      verified: true,
-      fulfilled: true,
-      discount: "12% off",
-    },
-    {
-      name: "Premium Cotton Fabric Roll",
-      description: "100% Cotton, 120 GSM, Multiple Colors",
-      price: "72 - 85",
-      unit: "meters",
-      moq: "100",
-      image: "🧵",
-      rating: 4.6,
-      verified: true,
-      fulfilled: true,
-      discount: "8% off",
-    },
-    {
-      name: "Heavy Duty Industrial Drill Machine",
-      description: "1500W Motor, Variable Speed, Metal Body",
-      price: "7,500 - 8,500",
-      unit: "pieces",
-      moq: "10",
-      image: "🔨",
-      rating: 4.7,
-      verified: true,
-      fulfilled: true,
-      discount: "15% off",
-    },
-    {
-      name: "Organic Basmati Rice Premium Grade",
-      description: "Organic, Long Grain, Aged 2 Years",
-      price: "110 - 125",
-      unit: "kg",
-      moq: "500",
-      image: "🌾",
-      rating: 4.9,
-      verified: true,
-      fulfilled: true,
-      discount: "5% off",
-    },
-    {
-      name: "LED Panel Light 40W Bulk Pack",
-      description: "40W, 4000 Lumens, Cool White, Energy Efficient",
-      price: "520 - 650",
-      unit: "pieces",
-      moq: "100",
-      image: "💡",
-      rating: 4.5,
-      verified: true,
-      fulfilled: true,
-      discount: "18% off",
-    },
-    {
-      name: "Executive Office Chair Bulk Order",
-      description: "Ergonomic, Adjustable Height, Mesh Back Support",
-      price: "5,500 - 6,500",
-      unit: "pieces",
-      moq: "20",
-      image: "🪑",
-      rating: 4.4,
-      verified: true,
-      fulfilled: true,
-      discount: "10% off",
-    },
-    {
-      name: "Industrial Safety Gloves Pack",
-      description: "Cut Resistant, Leather Palm, Heavy Duty",
-      price: "450 - 550",
-      unit: "pair",
-      moq: "500",
-      image: "🧤",
-      rating: 4.7,
-      verified: true,
-      fulfilled: true,
-      discount: "7% off",
-    },
-    {
-      name: "Premium Quality Silk Sarees",
-      description: "Pure Silk, Traditional Designs, Zari Work",
-      price: "7,200 - 8,500",
-      unit: "pieces",
-      moq: "25",
-      image: "👘",
-      rating: 4.8,
-      verified: true,
-      fulfilled: true,
-      discount: "20% off",
-    },
-  ];
+  const fetchFeaturedProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await GETMethod(
+        `${StaticAPI.getAllFeaturedProducts}?limit=12&isFeatured=true`,
+      );
+
+      if (response.success && response.products) {
+        // Transform API response to match component structure
+        const formattedProducts = response.products.map((product) => ({
+          id: product._id,
+          name: product.name,
+          description: product.shortDescription || product.description,
+          price: formatPriceRange(product.pricingTiers),
+          unit: getUnitFromPricingTiers(product.pricingTiers),
+          moq: product.minimumOrderQuantity,
+          image: product.images?.[0]?.url,
+          rating: product.rating?.average || 4.5,
+          verified: true,
+          fulfilled: product.bulkOrderEligible || false,
+          discount: getDiscount(product.pricingTiers),
+          slug: product.slug,
+          seller: product.seller?.businessName || "Verified Seller",
+        }));
+        setProducts(formattedProducts);
+      } else {
+        // Fallback to sample data if API fails
+        setProducts(getSampleProducts());
+      }
+    } catch (error) {
+      console.error("Error fetching featured products:", error);
+      setError("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to format price range
+  const formatPriceRange = (pricingTiers) => {
+    if (!pricingTiers || pricingTiers.length === 0) return "0 - 0";
+    const prices = pricingTiers.map((tier) => tier.pricePerPiece);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+
+    if (minPrice === maxPrice) {
+      return minPrice.toLocaleString();
+    }
+    return `${minPrice.toLocaleString()} - ${maxPrice.toLocaleString()}`;
+  };
+
+  // Helper function to get unit from pricing tiers
+  const getUnitFromPricingTiers = (pricingTiers) => {
+    // Default unit - you can determine from product or category
+    return "piece";
+  };
+
+  // Helper function to get discount
+  const getDiscount = (pricingTiers) => {
+    if (!pricingTiers || pricingTiers.length === 0) return null;
+    const maxDiscount = Math.max(
+      ...pricingTiers.map((tier) => tier.discount || 0),
+    );
+    return maxDiscount > 0 ? `${maxDiscount}% off` : null;
+  };
+
+  // Handle request quote
+  const handleRequestQuote = (product) => {
+    window.location.href = `/products/product/${product.id}`;
+  };
+
+  // Fetch featured products from API
+  useEffect(() => {
+    fetchFeaturedProducts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="text-center">
+              <Loader className="w-12 h-12 text-[hsl(24,100%,50%)] animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">Loading featured products...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && products.length === 0) {
+    return (
+      <div className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center py-12">
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-[hsl(24,100%,50%)] text-white px-6 py-2 rounded-lg hover:bg-[hsl(24,100%,40%)]"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-16 bg-gray-50">
@@ -148,131 +157,159 @@ const FeaturedProducts = () => {
         </div>
 
         {/* Products Carousel */}
-        <Swiper
-          modules={[Navigation, Pagination, Autoplay]}
-          spaceBetween={24}
-          slidesPerView={1}
-          navigation={{
-            prevEl: prevRef.current,
-            nextEl: nextRef.current,
-          }}
-          pagination={{
-            clickable: true,
-            dynamicBullets: true,
-          }}
-          autoplay={{
-            delay: 4000,
-            disableOnInteraction: false,
-            pauseOnMouseEnter: true,
-          }}
-          loop={true}
-          breakpoints={{
-            640: {
-              slidesPerView: 2,
-              spaceBetween: 20,
-            },
-            768: {
-              slidesPerView: 2,
-              spaceBetween: 20,
-            },
-            1024: {
-              slidesPerView: 3,
-              spaceBetween: 24,
-            },
-            1280: {
-              slidesPerView: 4,
-              spaceBetween: 24,
-            },
-          }}
-          className="featured-products-swiper"
-          onInit={(swiper) => {
-            // Fix for navigation buttons initialization
-            swiper.params.navigation.prevEl = prevRef.current;
-            swiper.params.navigation.nextEl = nextRef.current;
-            swiper.navigation.init();
-            swiper.navigation.update();
-          }}
-        >
-          {products.map((product, index) => (
-            <SwiperSlide key={index}>
-              <div className="bg-white rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-500 border border-gray-100 group h-full flex flex-col">
-                {/* Product Image with Discount Badge */}
-                <div className="relative h-48 bg-gradient-to-br from-[hsl(24,100%,90%)] to-[hsl(24,100%,80%)] flex items-center justify-center overflow-hidden">
-                  <span className="text-6xl transform group-hover:scale-110 transition-transform duration-500">
-                    {product.image}
-                  </span>
-                  {product.discount && (
-                    <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                      {product.discount}
-                    </div>
-                  )}
-                </div>
-
-                {/* Product Details */}
-                <div className="p-5 flex-1 flex flex-col">
-                  {/* Rating and Verified Badge */}
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center bg-gray-100 px-2 py-1 rounded-full">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-semibold ml-1">
-                        {product.rating}
+        {products.length > 0 ? (
+          <Swiper
+            modules={[Navigation, Pagination, Autoplay]}
+            spaceBetween={24}
+            slidesPerView={1}
+            navigation={{
+              prevEl: prevRef.current,
+              nextEl: nextRef.current,
+            }}
+            pagination={{
+              clickable: true,
+              dynamicBullets: true,
+            }}
+            autoplay={{
+              delay: 4000,
+              disableOnInteraction: false,
+              pauseOnMouseEnter: true,
+            }}
+            loop={true}
+            breakpoints={{
+              640: {
+                slidesPerView: 2,
+                spaceBetween: 20,
+              },
+              768: {
+                slidesPerView: 2,
+                spaceBetween: 20,
+              },
+              1024: {
+                slidesPerView: 3,
+                spaceBetween: 24,
+              },
+              1280: {
+                slidesPerView: 4,
+                spaceBetween: 24,
+              },
+            }}
+            className="featured-products-swiper"
+            onInit={(swiper) => {
+              swiper.params.navigation.prevEl = prevRef.current;
+              swiper.params.navigation.nextEl = nextRef.current;
+              swiper.navigation.init();
+              swiper.navigation.update();
+            }}
+          >
+            {products.map((product) => (
+              <SwiperSlide key={product.id}>
+                <div
+                  onClick={() => handleRequestQuote(product)}
+                  className="bg-white rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-500 border border-gray-100 group flex flex-col h-full"
+                >
+                  {/* Product Image with Discount Badge - Fixed height */}
+                  <div className="relative h-48 flex-shrink-0 bg-gradient-to-br from-[hsl(24,100%,90%)] to-[hsl(24,100%,80%)] flex items-center justify-center overflow-hidden">
+                    {product.image?.startsWith("http") ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="h-32 w-32 object-contain transform group-hover:scale-110 transition-transform duration-500"
+                      />
+                    ) : (
+                      <span className="text-6xl transform group-hover:scale-110 transition-transform duration-500">
+                        {product.image || "📦"}
                       </span>
-                    </div>
-                    {product.verified && (
-                      <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full font-medium">
-                        ✓ Verified
-                      </span>
+                    )}
+                    {product.discount && (
+                      <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        {product.discount}
+                      </div>
                     )}
                   </div>
 
-                  {/* Product Title */}
-                  <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-[hsl(24,100%,50%)] transition-colors">
-                    {product.name}
-                  </h3>
-
-                  {/* Description */}
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {product.description}
-                  </p>
-
-                  {/* Price */}
-                  <div className="mb-2">
-                    <span className="text-xl font-bold text-[hsl(24,100%,50%)]">
-                      ₹{product.price}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {" "}
-                      / {product.unit}
-                    </span>
-                  </div>
-
-                  {/* MOQ */}
-                  <p className="text-sm text-gray-600 mb-3">
-                    <span className="font-medium">MOQ:</span> {product.moq}{" "}
-                    {product.unit}
-                  </p>
-
-                  {/* Fulfilled by Platform Badge */}
-                  {product.fulfilled && (
-                    <div className="flex items-center text-xs text-gray-500 mb-4 bg-gray-50 py-1 px-2 rounded-full w-fit">
-                      <Shield className="w-3 h-3 mr-1 text-[hsl(24,100%,50%)]" />
-                      Fulfilled by Platform
+                  {/* Product Details - Fixed content area */}
+                  <div className="p-5 flex flex-col flex-grow">
+                    {/* Rating and Verified Badge */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center bg-gray-100 px-2 py-1 rounded-full">
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm font-semibold ml-1">
+                          {product.rating?.toFixed(1) || "4.5"}
+                        </span>
+                      </div>
+                      {product.verified && (
+                        <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap">
+                          ✓ Verified
+                        </span>
+                      )}
                     </div>
-                  )}
 
-                  {/* Action Button */}
-                  <button className="w-full bg-[hsl(24,100%,50%)] text-white py-2.5 rounded-lg font-semibold hover:bg-[hsl(24,100%,40%)] transform hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg mt-auto">
-                    Request Quote
-                  </button>
+                    {/* Product Title - Fixed height for 2 lines */}
+                    <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 min-h-[3rem] group-hover:text-[hsl(24,100%,50%)] transition-colors">
+                      {product.name}
+                    </h3>
+
+                    {/* Seller Name - Fixed height */}
+                    <p className="text-xs text-gray-500 mb-2 min-h-[1.25rem]">
+                      by {product.seller || "Verified Seller"}
+                    </p>
+
+                    {/* Description - Fixed height for 2 lines */}
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2 min-h-[2.5rem]">
+                      {product.description}
+                    </p>
+
+                    {/* Price - Fixed height */}
+                    <div className="mb-2 min-h-[2rem]">
+                      <span className="text-xl font-bold text-[hsl(24,100%,50%)]">
+                        ₹{product.price}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {" "}
+                        / {product.unit || "piece"}
+                      </span>
+                    </div>
+
+                    {/* MOQ - Fixed height */}
+                    <p className="text-sm text-gray-600 mb-3 min-h-[1.5rem]">
+                      <span className="font-medium">MOQ:</span>{" "}
+                      {product.moq || "1"} {product.unit || "piece"}
+                    </p>
+
+                    {/* Fulfilled by Platform Badge - Fixed height */}
+                    <div className="min-h-[2.5rem] mb-2">
+                      {product.fulfilled && (
+                        <div className="flex items-center text-xs text-gray-500 bg-gray-50 py-1 px-2 rounded-full w-fit">
+                          <Shield className="w-3 h-3 mr-1 text-[hsl(24,100%,50%)]" />
+                          Fulfilled by Platform
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Button - Fixed at bottom */}
+                    <button className="w-full bg-[hsl(24,100%,50%)] text-white py-2.5 rounded-lg font-semibold hover:bg-[hsl(24,100%,40%)] transform hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg mt-auto">
+                      Request Quote
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500">
+              No featured products available at the moment.
+            </p>
+          </div>
+        )}
 
         {/* Mobile View All Button */}
         <div className="flex justify-center mt-8 md:hidden">
-          <button className="flex items-center text-[hsl(24,100%,50%)] font-semibold hover:text-[hsl(24,100%,40%)] transition-colors bg-white px-6 py-3 rounded-full shadow-md">
+          <button
+            onClick={() => (window.location.href = "/products")}
+            className="flex items-center text-[hsl(24,100%,50%)] font-semibold hover:text-[hsl(24,100%,40%)] transition-colors bg-white px-6 py-3 rounded-full shadow-md"
+          >
             View All Products <ChevronRight size={20} className="ml-1" />
           </button>
         </div>

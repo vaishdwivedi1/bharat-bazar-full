@@ -13,7 +13,6 @@ import Register from "./pages/Register";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Home from "./pages/user/Home";
-import PublicProductDetail from "./pages/user/ProductDetail";
 import PublicProducts from "./pages/user/Products";
 
 // User Pages (Protected - after login)
@@ -30,20 +29,13 @@ import SellerDashboard from "./pages/seller/Dashboard";
 import SellerAnalytics from "./pages/seller/SellerAnalytics";
 
 // Products
-import SellerEditProduct from "./pages/seller/EditProduct";
-import SellerProductDetail from "./pages/seller/ProductDetail";
 import SellerProducts from "./pages/seller/SellerProducts";
 
 // Categories
 import SellerCategories from "./pages/seller/SellerCategories";
-import SellerCategoryDetail from "./pages/seller/SellerCategoryDetail";
-import SellerEditCategory from "./pages/seller/SellerEditCategory";
 
 // Brands
 import SellerBrands from "./pages/seller/SellerBrands";
-import SellerAddBrand from "./pages/seller/SellerAddBrand";
-import SellerBrandDetail from "./pages/seller/SellerBrandDetail";
-import SellerEditBrand from "./pages/seller/SellerEditBrand";
 
 // Inventory
 import SellerInventory from "./pages/seller/SellerInventory";
@@ -51,14 +43,14 @@ import SellerLowStock from "./pages/seller/SellerLowStock";
 import SellerStockAlerts from "./pages/seller/SellerStockAlerts";
 
 // Orders
-import SellerOrders from "./pages/seller/SellerOrders";
+import SellerOrderCancelled from "./pages/seller/SellerOrderCancelled";
+import SellerOrderDelivered from "./pages/seller/SellerOrderDelivered";
 import SellerOrderDetail from "./pages/seller/SellerOrderDetail";
 import SellerOrderPending from "./pages/seller/SellerOrderPending";
 import SellerOrderProcessing from "./pages/seller/SellerOrderProcessing";
-import SellerOrderShipped from "./pages/seller/SellerOrderShipped";
-import SellerOrderDelivered from "./pages/seller/SellerOrderDelivered";
-import SellerOrderCancelled from "./pages/seller/SellerOrderCancelled";
 import SellerOrderReturn from "./pages/seller/SellerOrderReturn";
+import SellerOrders from "./pages/seller/SellerOrders";
+import SellerOrderShipped from "./pages/seller/SellerOrderShipped";
 
 // Finance
 import SellerFinanceDashboard from "./pages/seller/SellerFinanceDashboard";
@@ -71,8 +63,9 @@ import SellerReviews from "./pages/seller/SellerReviews";
 import SellerProfile from "./pages/seller/SellerProfile";
 import SellerSettings from "./pages/seller/SellerSettings";
 
-import { ROUTES, SELLER_BASE_PATH, USER_BASE_PATH } from "./utils/StaticRoutes";
 import ForgotPassword from "./pages/ForgotPassword";
+import ProductDetail from "./pages/user/ProductDetail";
+import { ROUTES, SELLER_BASE_PATH, USER_BASE_PATH } from "./utils/StaticRoutes";
 // import ResetPassword from "./pages/ResetPassword";
 
 // ============ PROTECTED ROUTE COMPONENT ============
@@ -200,16 +193,17 @@ const Routing = () => {
           {/* Product browsing - Available to everyone */}
           <Route path="products">
             <Route index element={<PublicProducts />} />
+            <Route path="category/:categoryId" element={<PublicProducts />} />
+            <Route path="search" element={<PublicProducts />} />
             <Route
-              path=":id"
+              path="product/:productId"
               element={
                 <UserLayout>
-                  <PublicProductDetail />
+                  {" "}
+                  <ProductDetail />
                 </UserLayout>
               }
             />
-            <Route path="category/:categoryId" element={<PublicProducts />} />
-            <Route path="search" element={<PublicProducts />} />
           </Route>
 
           {/* Information pages - Available to everyone */}
@@ -278,23 +272,16 @@ const Routing = () => {
           {/* Product Routes */}
           <Route path="products">
             <Route index element={<SellerProducts />} />
-            <Route path=":id" element={<SellerProductDetail />} />
-            <Route path="edit/:id" element={<SellerEditProduct />} />
           </Route>
 
           {/* Category Routes */}
           <Route path="categories">
             <Route index element={<SellerCategories />} />
-            <Route path=":id" element={<SellerCategoryDetail />} />
-            <Route path="edit/:id" element={<SellerEditCategory />} />
           </Route>
 
           {/* Brand Routes */}
           <Route path="brands">
             <Route index element={<SellerBrands />} />
-            <Route path="add" element={<SellerAddBrand />} />
-            <Route path=":id" element={<SellerBrandDetail />} />
-            <Route path="edit/:id" element={<SellerEditBrand />} />
           </Route>
 
           {/* Inventory Routes */}
