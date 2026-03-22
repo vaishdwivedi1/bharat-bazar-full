@@ -32,7 +32,7 @@ import SellerAnalytics from "./pages/seller/SellerAnalytics";
 // Products
 import SellerEditProduct from "./pages/seller/EditProduct";
 import SellerProductDetail from "./pages/seller/ProductDetail";
-import SellerProducts from "./pages/seller/Products";
+import SellerProducts from "./pages/seller/SellerProducts";
 
 // Categories
 import SellerCategories from "./pages/seller/SellerCategories";

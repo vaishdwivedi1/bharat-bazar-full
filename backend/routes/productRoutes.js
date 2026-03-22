@@ -26,8 +26,10 @@ import {
   getFlaggedProducts,
   createProduct,
   changeProductStatus,
-  bulkCreateProducts,
+  changeProductStatusBySeller,
+  // bulkCreateProducts,
 } from "../controllers/productController.js";
+import { upload } from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -65,16 +67,28 @@ router.get(
   isSeller,
   getProductAnalytics,
 );
-// router.post(
-//   "/v1/createProduct",
-//   isValidToken,
-//   // isSeller,
-//   isAdmin,
-//   createProduct,
-// ); // Changed from get to post
-router.post("/v1/bulkCreateProducts", bulkCreateProducts); // Changed from get to post
+router.post(
+  "/v1/createProduct",
+  isValidToken,
+  isSeller,
+  upload.array("images", 10), // Allow up to 10 images with field name "images"
+  createProduct,
+); // Changed from get to post
+// router.post("/v1/bulkCreateProducts", bulkCreateProducts); // Changed from get to post
 router.post("/v1/editProduct", isValidToken, isSeller, editProduct); // Changed from get to post
-router.post("/v1/deleteProduct", isValidToken, isSeller, deleteProduct); // Changed from get to post
+router.delete(
+  "/v1/deleteProduct/:productId",
+  isValidToken,
+  isSeller,
+  deleteProduct,
+); // Changed from get to post
+
+router.post(
+  "/v1/changeProductStatus",
+  isValidToken,
+  isSeller,
+  changeProductStatusBySeller,
+); // Hide / unhide / flag inappropriate products
 
 // ============ ADMIN APIs (Admin Only) ============
 // Product Oversight (not full approval, just oversight) [citation:1][citation:7]

@@ -16,4 +16,11 @@ export const StaticAPI = {
   editSellerCategory: "/category/v1/seller/edit-category",
   deleteSellerCategory: "/category/v1/seller/delete-category",
   toggleSellerCategoryStatus: "/category/v1/seller/toggleCategoryStatus",
+
+  // products
+  getProductsBySeller: "/products/v1/getAllProductsBySeller",
+  createProduct: "/products/v1/createProduct",
+  editProduct: "/products/v1/editProduct",
+  deleteProduct: "/products/v1/deleteProduct",
+  changeProductStatus: "/products/v1/changeProductStatus",
 };
