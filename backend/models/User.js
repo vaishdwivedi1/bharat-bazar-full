@@ -24,6 +24,9 @@ const userSchema = new mongoose.Schema(
     // References
     banks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Bank" }],
     addresses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Address" }],
+    paymentMethods: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "PaymentMethod" },
+    ],
   },
   { timestamps: true },
 );

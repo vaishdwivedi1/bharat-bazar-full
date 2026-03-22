@@ -33,7 +33,6 @@ export const isValidToken = async (req, res, next) => {
 };
 
 export const isSeller = async (req, res, next) => {
-  console.log(req.user);
   try {
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized" });

@@ -1026,12 +1026,6 @@ export const createProduct = async (req, res) => {
   try {
     const sellerId = req.user.id;
 
-    // Log incoming data for debugging
-    console.log("=== CREATE PRODUCT ===");
-    console.log("Seller ID:", sellerId);
-    console.log("Request body:", req.body);
-    console.log("Request files:", req.files);
-
     const {
       name,
       shortDescription,
@@ -1072,7 +1066,6 @@ export const createProduct = async (req, res) => {
     try {
       if (typeof pricingTiers === "string") {
         parsedPricingTiers = JSON.parse(pricingTiers);
-        console.log("Parsed pricing tiers:", parsedPricingTiers);
       }
       if (typeof specifications === "string") {
         parsedSpecifications = JSON.parse(specifications);
@@ -1111,12 +1104,9 @@ export const createProduct = async (req, res) => {
     const imageFiles = req.files;
     const images = [];
 
-    console.log("Image files received:", imageFiles ? imageFiles.length : 0);
-
     if (imageFiles && imageFiles.length > 0) {
       for (const file of imageFiles) {
         try {
-          console.log("Uploading image:", file.originalname);
           const cloudinaryResponse = await uploadOnCloudinary(file.path);
           images.push({ url: cloudinaryResponse.secure_url });
           if (fs.existsSync(file.path)) {
@@ -1204,11 +1194,6 @@ export const createProduct = async (req, res) => {
     if (subCategory && subCategory !== "") {
       productData.subCategory = subCategory;
     }
-
-    console.log(
-      "Creating product with data:",
-      JSON.stringify(productData, null, 2),
-    );
 
     const product = await Product.create(productData);
 
