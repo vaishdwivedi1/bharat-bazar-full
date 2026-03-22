@@ -6,6 +6,8 @@ import authRoutes from "./routes/authRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import serverless from "serverless-http";
+import cookieSession from "cookie-session";
+import bodyParser from "body-parser";
 configDotenv();
 
 // db
