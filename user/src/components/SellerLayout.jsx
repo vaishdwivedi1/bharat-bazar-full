@@ -121,21 +121,13 @@ const SellerLayout = ({ sellerData = {}, onLogout }) => {
           path: ROUTES.SELLER_PRODUCTS,
           icon: HiOutlineCube,
         },
-        {
-          name: "Add Product",
-          path: ROUTES.SELLER_PRODUCT_ADD,
-          icon: HiOutlineShoppingBag,
-        },
+
         {
           name: "Categories",
           path: ROUTES.SELLER_CATEGORIES,
           icon: HiOutlineTag,
         },
-        {
-          name: "Add Category",
-          path: ROUTES.SELLER_CATEGORY_ADD,
-          icon: HiOutlineTag,
-        },
+
         {
           name: "Brands",
           path: ROUTES.SELLER_BRANDS,

@@ -11,6 +11,10 @@ import {
   HiOutlineX,
   HiOutlineChevronRight,
   HiOutlineChevronDown,
+  HiOutlineDocumentText,
+  HiOutlineTag,
+  HiOutlineUsers,
+  HiOutlineCube,
 } from "react-icons/hi";
 import { toast } from "react-toastify";
 import {
@@ -29,7 +33,9 @@ const SellerCategories = () => {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -78,7 +84,6 @@ const SellerCategories = () => {
     }
 
     try {
-      // Build URL with search params
       let url = `${StaticAPI.getSellerCategories}?page=${pageNum}&limit=10`;
       if (searchTerm) {
         url += `&search=${encodeURIComponent(searchTerm)}`;
@@ -104,7 +109,7 @@ const SellerCategories = () => {
     }
   };
 
-  // Fetch all categories for parent selection (without pagination)
+  // Fetch all categories for parent selection
   const fetchAllCategoriesForParent = async () => {
     try {
       const response = await GETMethod(
@@ -273,6 +278,28 @@ const SellerCategories = () => {
     }, 100);
   };
 
+  // Handle row click to open details modal
+  const handleRowClick = (category, e) => {
+    // Prevent opening modal if clicking on action buttons
+    if (e.target.closest("button")) {
+      return;
+    }
+    setSelectedCategory(category);
+    setShowDetailsModal(true);
+  };
+
+  // Handle edit from details modal
+  const handleEditFromDetails = () => {
+    setShowDetailsModal(false);
+    handleEdit(selectedCategory);
+  };
+
+  // Handle delete from details modal
+  const handleDeleteFromDetails = () => {
+    setShowDetailsModal(false);
+    handleDeleteClick(selectedCategory);
+  };
+
   // Open modal for editing category
   const handleEdit = async (category) => {
     setEditingCategory(category);
@@ -299,7 +326,6 @@ const SellerCategories = () => {
     const filteredParents = allParents.filter((parent) => {
       if (parent._id === category._id) return false;
 
-      // Check if parent is a child of this category (circular reference prevention)
       let isChild = false;
       const checkIfChild = (catId) => {
         const child = categories.find((c) => c.parentCategory === catId);
@@ -341,7 +367,6 @@ const SellerCategories = () => {
     try {
       const formDataToSend = new FormData();
 
-      // Append all fields
       formDataToSend.append("name", formData.name);
       formDataToSend.append("description", formData.description || "");
       formDataToSend.append("slug", formData.slug);
@@ -349,7 +374,6 @@ const SellerCategories = () => {
       formDataToSend.append("isFeatured", formData.isFeatured);
       formDataToSend.append("isActive", formData.isActive);
 
-      // Send subcategories as JSON string
       if (formData.subcategories && formData.subcategories.length > 0) {
         formDataToSend.append(
           "subcategories",
@@ -359,12 +383,10 @@ const SellerCategories = () => {
         formDataToSend.append("subcategories", "[]");
       }
 
-      // Send parent category if selected
       if (formData.parentCategory && formData.parentCategory !== "") {
         formDataToSend.append("parentCategory", formData.parentCategory);
       }
 
-      // Append image file if selected
       if (imageFile) {
         formDataToSend.append("image", imageFile);
       }
@@ -375,15 +397,13 @@ const SellerCategories = () => {
         },
       };
 
-      let response;
-
       if (editingCategory) {
         const url = `${StaticAPI.editSellerCategory}/${editingCategory._id}`;
-        response = await PUTMethod(url, formDataToSend, config);
+        await PUTMethod(url, formDataToSend, config);
         toast.success("Category updated successfully");
       } else {
         const url = StaticAPI.addSellerCategory;
-        response = await POSTMethod(url, formDataToSend, config);
+        await POSTMethod(url, formDataToSend, config);
         toast.success("Category created successfully");
       }
 
@@ -418,7 +438,6 @@ const SellerCategories = () => {
 
   // Open delete confirmation modal
   const handleDeleteClick = (category) => {
-    // Check if category has children
     const hasChildren = categories.some((c) => {
       const catParent = c.parentCategory?._id || c.parentCategory;
       return catParent === category._id;
@@ -477,6 +496,12 @@ const SellerCategories = () => {
             c._id === category._id ? { ...c, isActive: !category.isActive } : c,
           ),
         );
+        if (selectedCategory && selectedCategory._id === category._id) {
+          setSelectedCategory({
+            ...selectedCategory,
+            isActive: !category.isActive,
+          });
+        }
       }
     } catch (error) {
       console.error("Error toggling category status:", error);
@@ -485,7 +510,8 @@ const SellerCategories = () => {
   };
 
   // Toggle row expansion
-  const toggleRowExpansion = (categoryId) => {
+  const toggleRowExpansion = (categoryId, e) => {
+    e.stopPropagation();
     const newExpanded = new Set(expandedRows);
     if (newExpanded.has(categoryId)) {
       newExpanded.delete(categoryId);
@@ -544,13 +570,16 @@ const SellerCategories = () => {
 
       return (
         <React.Fragment key={category._id}>
-          <tr className="hover:bg-gray-50">
+          <tr
+            className="hover:bg-gray-50 cursor-pointer transition-colors"
+            onClick={(e) => handleRowClick(category, e)}
+          >
             <td className="px-6 py-4 whitespace-nowrap">
               <div className="flex items-center gap-2">
                 {hasChildren && (
                   <button
-                    onClick={() => toggleRowExpansion(category._id)}
-                    className="text-gray-500 hover:text-gray-700"
+                    onClick={(e) => toggleRowExpansion(category._id, e)}
+                    className="text-gray-500 hover:text-gray-700 focus:outline-none"
                     type="button"
                   >
                     {isExpanded ? (
@@ -624,19 +653,10 @@ const SellerCategories = () => {
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
               <button
-                onClick={() => handleToggleStatus(category)}
-                className="text-gray-600 hover:text-gray-900 mr-3"
-                title={category.isActive ? "Deactivate" : "Activate"}
-                type="button"
-              >
-                {category.isActive ? (
-                  <HiOutlineEyeOff className="w-5 h-5" />
-                ) : (
-                  <HiOutlineEye className="w-5 h-5" />
-                )}
-              </button>
-              <button
-                onClick={() => handleEdit(category)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(category);
+                }}
                 className="text-blue-600 hover:text-blue-900 mr-3"
                 title="Edit"
                 type="button"
@@ -644,7 +664,10 @@ const SellerCategories = () => {
                 <HiOutlinePencil className="w-5 h-5" />
               </button>
               <button
-                onClick={() => handleDeleteClick(category)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteClick(category);
+                }}
                 className="text-red-600 hover:text-red-900"
                 title="Delete"
                 type="button"
@@ -778,9 +801,189 @@ const SellerCategories = () => {
         )}
       </div>
 
+      {/* Details Modal */}
+      {showDetailsModal && selectedCategory && (
+        <div className="fixed inset-0 backdrop-blur-md bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
+              <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                <HiOutlineDocumentText className="w-5 h-5" />
+                Category Details
+              </h2>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Category Header */}
+              <div className="flex items-start gap-6 mb-6 pb-6 border-b border-gray-200">
+                <div className="flex-shrink-0">
+                  <div className="text-6xl mb-2">
+                    {selectedCategory.icon || "📦"}
+                  </div>
+                  {selectedCategory.image && selectedCategory.image !== "" && (
+                    <img
+                      src={selectedCategory.image}
+                      alt={selectedCategory.name}
+                      className="w-24 h-24 object-cover rounded-lg border border-gray-200"
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    {selectedCategory.name}
+                  </h3>
+                  <div className="flex gap-2 mb-2">
+                    <span
+                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        selectedCategory.isActive
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {selectedCategory.isActive ? "Active" : "Inactive"}
+                    </span>
+                    <span
+                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        selectedCategory.isFeatured
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {selectedCategory.isFeatured ? "Featured" : "Regular"}
+                    </span>
+                  </div>
+                  <p className="text-gray-600">
+                    {selectedCategory.description || "No description provided"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Category Details Grid */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 text-gray-600 mb-1">
+                    <HiOutlineTag className="w-4 h-4" />
+                    <span className="text-sm font-medium">Slug</span>
+                  </div>
+                  <p className="text-gray-900 font-mono text-sm">
+                    {selectedCategory.slug}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 text-gray-600 mb-1">
+                    <HiOutlineCube className="w-4 h-4" />
+                    <span className="text-sm font-medium">Products Count</span>
+                  </div>
+                  <p className="text-gray-900 text-2xl font-semibold">
+                    {selectedCategory.productsCount || "0"}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 text-gray-600 mb-1">
+                    <HiOutlineUsers className="w-4 h-4" />
+                    <span className="text-sm font-medium">Parent Category</span>
+                  </div>
+                  <p className="text-gray-900">
+                    {selectedCategory.parentCategory?.name ||
+                      selectedCategory.parentCategory ||
+                      "None (Top Level)"}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 text-gray-600 mb-1">
+                    <HiOutlineTag className="w-4 h-4" />
+                    <span className="text-sm font-medium">Level</span>
+                  </div>
+                  <p className="text-gray-900">{selectedCategory.level || 0}</p>
+                </div>
+              </div>
+
+              {/* Subcategories Section */}
+              {selectedCategory.subcategories &&
+                selectedCategory.subcategories.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                      <HiOutlineTag className="w-5 h-5" />
+                      Subcategories / Tags
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCategory.subcategories.map((sub, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                        >
+                          {sub}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Metadata */}
+              <div className="text-sm text-gray-500 border-t border-gray-200 pt-4">
+                <p>
+                  Created:{" "}
+                  {new Date(selectedCategory.createdAt).toLocaleString()}
+                </p>
+                <p>
+                  Last Updated:{" "}
+                  {new Date(selectedCategory.updatedAt).toLocaleString()}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => handleToggleStatus(selectedCategory)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  type="button"
+                >
+                  {selectedCategory.isActive ? (
+                    <>
+                      <HiOutlineEyeOff className="w-4 h-4" />
+                      Deactivate
+                    </>
+                  ) : (
+                    <>
+                      <HiOutlineEye className="w-4 h-4" />
+                      Activate
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleEditFromDetails}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                  type="button"
+                >
+                  <HiOutlinePencil className="w-4 h-4" />
+                  Edit Category
+                </button>
+                <button
+                  onClick={handleDeleteFromDetails}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                  type="button"
+                >
+                  <HiOutlineTrash className="w-4 h-4" />
+                  Delete Category
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 backdrop-blur-md bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-md bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
               <h2 className="text-xl font-semibold text-gray-800">
@@ -918,7 +1121,6 @@ const SellerCategories = () => {
                       )}
                     </div>
 
-                    {/* Image Preview */}
                     {imagePreview && (
                       <div className="mt-2 relative">
                         <img
@@ -1038,7 +1240,7 @@ const SellerCategories = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 backdrop-blur-md bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-md bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-md p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Delete Category

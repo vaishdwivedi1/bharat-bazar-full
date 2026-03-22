@@ -30,14 +30,12 @@ import SellerDashboard from "./pages/seller/Dashboard";
 import SellerAnalytics from "./pages/seller/SellerAnalytics";
 
 // Products
-import SellerAddProduct from "./pages/seller/AddProduct";
 import SellerEditProduct from "./pages/seller/EditProduct";
 import SellerProductDetail from "./pages/seller/ProductDetail";
 import SellerProducts from "./pages/seller/Products";
 
 // Categories
 import SellerCategories from "./pages/seller/SellerCategories";
-import SellerAddCategory from "./pages/seller/SellerAddCategory";
 import SellerCategoryDetail from "./pages/seller/SellerCategoryDetail";
 import SellerEditCategory from "./pages/seller/SellerEditCategory";
 
@@ -280,7 +278,6 @@ const Routing = () => {
           {/* Product Routes */}
           <Route path="products">
             <Route index element={<SellerProducts />} />
-            <Route path="add" element={<SellerAddProduct />} />
             <Route path=":id" element={<SellerProductDetail />} />
             <Route path="edit/:id" element={<SellerEditProduct />} />
           </Route>
@@ -288,7 +285,6 @@ const Routing = () => {
           {/* Category Routes */}
           <Route path="categories">
             <Route index element={<SellerCategories />} />
-            <Route path="add" element={<SellerAddCategory />} />
             <Route path=":id" element={<SellerCategoryDetail />} />
             <Route path="edit/:id" element={<SellerEditCategory />} />
           </Route>
